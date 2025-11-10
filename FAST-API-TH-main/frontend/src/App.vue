@@ -87,6 +87,14 @@
       >
         🚨 Phát hiện Gian lận
       </button>
+      <button
+        @click="activeTab = 'survival'"
+        class="tab-button"
+        :class="{ active: activeTab === 'survival' }"
+        style="background: linear-gradient(135deg, #9C27B0 0%, #E1BEE7 100%); color: white; font-weight: 700;"
+      >
+        ⏳ Phân tích Sống sót
+      </button>
     </div>
 
     <!-- Main Container -->
@@ -2221,6 +2229,368 @@
           </div>
         </div>
       </div>
+
+      <!-- ✅ TAB CONTENT: Survival Analysis -->
+      <div v-if="activeTab === 'survival'" class="tab-content">
+        <div class="card">
+          <h2 class="card-title">⏳ Phân tích Sống sót & Dự báo Time-to-Default</h2>
+
+          <!-- Hướng dẫn sử dụng -->
+          <div class="info-note" style="background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); border-left: 4px solid #9C27B0;">
+            <span class="note-icon">📖</span>
+            <div class="note-text">
+              <strong>Mục đích:</strong> Phân tích thời gian sống sót của doanh nghiệp và dự báo thời điểm có nguy cơ vỡ nợ cao bằng mô hình Cox Proportional Hazards.<br>
+              <strong>Cách sử dụng:</strong>
+              <ol style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
+                <li>Bước 1: Upload file XLSX (3 sheets: CDKT, BCTN, LCTT) hoặc nhập thủ công 14 chỉ số tài chính</li>
+                <li>Bước 2: Nhấn "Phân tích Survival" để xem biểu đồ sống sót, median time-to-default và hazard ratios</li>
+                <li>Bước 3: Xem phân tích AI từ Gemini và xuất báo cáo Word nếu cần</li>
+              </ol>
+              <strong>Lưu ý:</strong> Mô hình cần được huấn luyện trước bằng dữ liệu lịch sử (có cột months_to_default).
+            </div>
+          </div>
+
+          <!-- Upload File hoặc Nhập Thủ công -->
+          <div style="margin: 2rem 0;">
+            <h3 style="color: #9C27B0; margin-bottom: 1rem;">📁 Nhập Dữ liệu</h3>
+
+            <!-- Toggle giữa Upload và Nhập thủ công -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+              <button
+                @click="survivalInputMode = 'upload'"
+                class="btn"
+                :class="survivalInputMode === 'upload' ? 'btn-primary' : 'btn-secondary'"
+                style="flex: 1;"
+              >
+                📤 Upload File XLSX
+              </button>
+              <button
+                @click="survivalInputMode = 'manual'"
+                class="btn"
+                :class="survivalInputMode === 'manual' ? 'btn-primary' : 'btn-secondary'"
+                style="flex: 1;"
+              >
+                ✍️ Nhập Thủ công 14 Chỉ số
+              </button>
+            </div>
+
+            <!-- Upload Mode -->
+            <div v-if="survivalInputMode === 'upload'" style="margin-top: 1.5rem;">
+              <div class="upload-area" @click="$refs.survivalXlsxInput.click()">
+                <div class="upload-icon">📊</div>
+                <p class="upload-text">{{ survivalXlsxFileName || 'Tải lên file XLSX của doanh nghiệp' }}</p>
+                <p class="upload-hint">
+                  File XLSX phải có 3 sheets: CDKT, BCTN, LCTT
+                </p>
+              </div>
+              <input
+                ref="survivalXlsxInput"
+                type="file"
+                accept=".xlsx,.xls"
+                @change="handleSurvivalXlsxFile"
+                style="display: none"
+              />
+            </div>
+
+            <!-- Manual Input Mode -->
+            <div v-if="survivalInputMode === 'manual'" style="margin-top: 1.5rem;">
+              <div class="indicators-input-grid">
+                <div v-for="(indicator, index) in manualSurvivalIndicators" :key="indicator.code" class="input-group">
+                  <label :for="'survival-' + indicator.code">
+                    {{ indicator.code }}: {{ indicator.name }}
+                  </label>
+                  <input
+                    :id="'survival-' + indicator.code"
+                    v-model.number="indicator.value"
+                    type="number"
+                    step="0.0001"
+                    placeholder="Nhập giá trị"
+                    class="input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Phân tích Button -->
+            <button
+              @click="analyzeSurvival"
+              class="btn btn-primary"
+              :disabled="isSurvivalAnalyzing || (!survivalXlsxFile && survivalInputMode === 'upload') || (survivalInputMode === 'manual' && !isManualSurvivalValid)"
+              style="margin-top: 1.5rem; width: 100%;"
+            >
+              {{ isSurvivalAnalyzing ? '⏳ Đang phân tích...' : '🔬 Phân tích Survival & Dự báo Time-to-Default' }}
+            </button>
+          </div>
+
+          <!-- Kết quả Survival Analysis -->
+          <div v-if="survivalResult">
+            <!-- Warning nếu có -->
+            <div v-if="survivalResult.warning" class="warning-box" style="
+              background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+              border-left: 5px solid #E53935;
+              padding: 1.5rem;
+              margin: 2rem 0;
+              border-radius: 12px;
+              box-shadow: 0 4px 12px rgba(229, 57, 53, 0.2);
+            ">
+              <h3 style="color: #C62828; margin: 0 0 0.5rem 0; font-size: 1.2rem;">
+                ⚠️ {{ survivalResult.warning.type === 'HIGH_RISK' ? 'CẢNH BÁO RỦI RO CAO' : 'LƯU Ý' }}
+              </h3>
+              <p style="margin: 0.5rem 0; font-size: 1rem; color: #333;">{{ survivalResult.warning.message }}</p>
+              <p style="margin: 0.5rem 0 0 0; font-size: 0.95rem; color: #666; font-style: italic;">
+                <strong>Khuyến nghị:</strong> {{ survivalResult.warning.recommendation }}
+              </p>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div style="margin: 2rem 0;">
+              <h3 style="color: #9C27B0; margin-bottom: 1.5rem; text-align: center;">📊 Các Chỉ số Chính</h3>
+              <div class="metrics-grid" style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 1.5rem;
+              ">
+                <!-- Median Time Card -->
+                <div class="metric-card" :style="{
+                  background: survivalResult.median_time_to_default < 12
+                    ? 'linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%)'
+                    : survivalResult.median_time_to_default < 24
+                    ? 'linear-gradient(135deg, #FFF9E8 0%, #FFE082 100%)'
+                    : 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  textAlign: 'center'
+                }">
+                  <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⏰</div>
+                  <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase;">Median Time-to-Default</h4>
+                  <div style="font-size: 2.5rem; font-weight: bold; margin: 0.5rem 0;" :style="{
+                    color: survivalResult.median_time_to_default < 12 ? '#C62828' : survivalResult.median_time_to_default < 24 ? '#F57C00' : '#2E7D32'
+                  }">
+                    {{ survivalResult.median_time_to_default.toFixed(1) }}
+                  </div>
+                  <div style="font-size: 1rem; color: #666;">tháng</div>
+                  <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #999; font-style: italic;">
+                    50% xác suất vỡ nợ
+                  </div>
+                </div>
+
+                <!-- Survival Probability at 6 months -->
+                <div class="metric-card" style="
+                  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+                  border-radius: 16px;
+                  padding: 1.5rem;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  text-align: center;
+                ">
+                  <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📅</div>
+                  <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase;">Xác suất Sống sót - 6 tháng</h4>
+                  <div style="font-size: 2.5rem; font-weight: bold; color: #1565C0; margin: 0.5rem 0;">
+                    {{ (survivalResult.survival_probabilities[6] * 100).toFixed(1) }}%
+                  </div>
+                  <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">
+                    Vỡ nợ: {{ ((1 - survivalResult.survival_probabilities[6]) * 100).toFixed(1) }}%
+                  </div>
+                </div>
+
+                <!-- Survival Probability at 12 months -->
+                <div class="metric-card" style="
+                  background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%);
+                  border-radius: 16px;
+                  padding: 1.5rem;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  text-align: center;
+                ">
+                  <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📆</div>
+                  <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase;">Xác suất Sống sót - 12 tháng</h4>
+                  <div style="font-size: 2.5rem; font-weight: bold; color: #7B1FA2; margin: 0.5rem 0;">
+                    {{ (survivalResult.survival_probabilities[12] * 100).toFixed(1) }}%
+                  </div>
+                  <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">
+                    Vỡ nợ: {{ ((1 - survivalResult.survival_probabilities[12]) * 100).toFixed(1) }}%
+                  </div>
+                </div>
+
+                <!-- Risk Classification Card -->
+                <div class="metric-card" :style="{
+                  background: survivalResult.risk_classification.color,
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  textAlign: 'center'
+                }">
+                  <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{{ survivalResult.risk_classification.icon }}</div>
+                  <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase;">Phân loại Rủi ro</h4>
+                  <div style="font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0;" :style="{ color: survivalResult.risk_classification.text_color }">
+                    {{ survivalResult.risk_classification.level }}
+                  </div>
+                  <div style="margin-top: 0.5rem; font-size: 0.85rem;" :style="{ color: survivalResult.risk_classification.text_color }">
+                    {{ survivalResult.risk_classification.description }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Survival Curve Chart -->
+            <div style="margin: 3rem 0;">
+              <h3 style="color: #9C27B0; margin-bottom: 1.5rem; text-align: center;">📈 Đường Cong Sống Sót (Survival Curve)</h3>
+              <div ref="survivalChartContainer" style="width: 100%; height: 500px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);"></div>
+            </div>
+
+            <!-- Hazard Ratios Table -->
+            <div style="margin: 3rem 0;">
+              <h3 style="color: #9C27B0; margin-bottom: 1rem;">🔬 Bảng Hazard Ratios - Top 5 Yếu tố Rủi ro Quan trọng</h3>
+              <div style="background: #F9F9F9; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <p style="margin: 0; font-size: 0.9rem; color: #666;">
+                  <strong>Giải thích Hazard Ratio (HR):</strong><br>
+                  • <strong>HR > 1:</strong> Chỉ số này làm TĂNG nguy cơ vỡ nợ (càng lớn càng nguy hiểm)<br>
+                  • <strong>HR < 1:</strong> Chỉ số này làm GIẢM nguy cơ vỡ nợ (bảo vệ doanh nghiệp)<br>
+                  • <strong>HR = 1:</strong> Chỉ số không ảnh hưởng đến rủi ro
+                </p>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Thứ hạng</th>
+                      <th>Chỉ số Tài chính</th>
+                      <th>Hazard Ratio</th>
+                      <th>Diễn giải</th>
+                      <th>Ý nghĩa Thống kê</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(hr, index) in survivalResult.hazard_ratios" :key="index">
+                      <td style="text-align: center; font-weight: bold;">{{ index + 1 }}</td>
+                      <td>
+                        <strong>{{ hr.feature_code }}:</strong> {{ hr.feature_name }}
+                      </td>
+                      <td style="text-align: center; font-weight: bold; font-size: 1.1rem;" :style="{
+                        color: hr.hazard_ratio > 1.5 ? '#C62828' : hr.hazard_ratio < 0.7 ? '#2E7D32' : '#F57C00'
+                      }">
+                        {{ hr.hazard_ratio.toFixed(3) }}
+                      </td>
+                      <td :style="{ color: hr.hazard_ratio > 1 ? '#C62828' : '#2E7D32' }">
+                        <span v-if="hr.hazard_ratio > 1">
+                          🔴 Tăng rủi ro {{ ((hr.hazard_ratio - 1) * 100).toFixed(1) }}%
+                        </span>
+                        <span v-else-if="hr.hazard_ratio < 1">
+                          🟢 Giảm rủi ro {{ ((1 - hr.hazard_ratio) * 100).toFixed(1) }}%
+                        </span>
+                        <span v-else>
+                          ⚪ Không ảnh hưởng
+                        </span>
+                      </td>
+                      <td style="text-align: center;">
+                        <span :style="{
+                          padding: '0.3rem 0.8rem',
+                          borderRadius: '20px',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          background: hr.significance === 'Có ý nghĩa' ? '#C8F5DC' : '#FFE8E8',
+                          color: hr.significance === 'Có ý nghĩa' ? '#0D5B2B' : '#C62828'
+                        }">
+                          {{ hr.significance }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Gemini Analysis Button & Result -->
+            <div style="margin: 3rem 0;">
+              <button
+                @click="getSurvivalGeminiAnalysis"
+                class="btn btn-primary"
+                :disabled="isSurvivalGeminiAnalyzing"
+                style="width: 100%; margin-bottom: 1.5rem;"
+              >
+                {{ isSurvivalGeminiAnalyzing ? '⏳ Đang phân tích bằng AI...' : '🤖 Phân tích Chuyên sâu bằng Gemini AI' }}
+              </button>
+
+              <!-- Gemini Analysis Result -->
+              <div v-if="survivalGeminiAnalysis" class="gemini-analysis-box" style="
+                background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%);
+                border: 3px solid #9C27B0;
+                border-radius: 16px;
+                padding: 2rem;
+                box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+              ">
+                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                  <span style="font-size: 2rem; margin-right: 0.5rem;">🤖</span>
+                  <h4 style="color: #7B1FA2; font-size: 1.3rem; margin: 0;">Phân tích Chuyên sâu từ Gemini AI</h4>
+                </div>
+                <div style="line-height: 1.8; color: #333; white-space: pre-wrap; font-size: 0.95rem;">
+                  {{ survivalGeminiAnalysis }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Export Report Button -->
+            <div style="margin: 2rem 0;">
+              <button
+                @click="exportSurvivalReport"
+                class="btn btn-success"
+                :disabled="isExportingSurvivalReport"
+                style="width: 100%;"
+              >
+                {{ isExportingSurvivalReport ? '⏳ Đang xuất báo cáo...' : '📄 Xuất Báo cáo Word (Survival Analysis)' }}
+              </button>
+            </div>
+
+            <!-- Chatbot Button -->
+            <div style="margin: 2rem 0; text-align: center;">
+              <button
+                @click="openSurvivalChatbot"
+                class="btn btn-info"
+                style="
+                  background: linear-gradient(135deg, #9C27B0 0%, #E1BEE7 100%);
+                  color: white;
+                  font-weight: 700;
+                  padding: 1rem 2rem;
+                  font-size: 1.1rem;
+                "
+              >
+                💬 Hỏi Trợ lý ảo Agribank về Survival Analysis
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Survival Chatbot -->
+        <div v-if="showSurvivalChatbot" class="chatbot-container">
+          <div class="chatbot-header">
+            <h3>💬 Trợ lý ảo Agribank - Survival Analysis</h3>
+            <button @click="closeSurvivalChatbot" class="chatbot-close">&times;</button>
+          </div>
+          <div class="chatbot-messages">
+            <div
+              v-for="(message, index) in survivalChatMessages"
+              :key="index"
+              :class="['chat-message', message.role === 'user' ? 'message-user' : 'message-assistant']"
+            >
+              <div class="message-content">{{ message.content }}</div>
+            </div>
+            <div v-if="isSurvivalChatLoading" class="chat-message message-assistant">
+              <div class="message-content">⏳ Đang suy nghĩ...</div>
+            </div>
+          </div>
+          <div class="chatbot-input">
+            <input
+              v-model="survivalChatInput"
+              @keyup.enter="sendSurvivalChatMessage"
+              type="text"
+              placeholder="Nhập câu hỏi của bạn..."
+              class="chat-input"
+            />
+            <button @click="sendSurvivalChatMessage" class="chat-send-btn" :disabled="!survivalChatInput || isSurvivalChatLoading">
+              Gửi
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -2385,6 +2755,46 @@ export default {
       } else {
         return anomalyCheckFile.value !== null
       }
+    })
+
+    // ====================================
+    // SURVIVAL ANALYSIS - NEW FEATURE
+    // ====================================
+    const survivalInputMode = ref('upload')
+    const survivalXlsxFile = ref(null)
+    const survivalXlsxFileName = ref('')
+    const manualSurvivalIndicators = ref([
+      { code: 'X_1', name: 'Biên lợi nhuận gộp', value: null },
+      { code: 'X_2', name: 'Biên lợi nhuận trước thuế', value: null },
+      { code: 'X_3', name: 'ROA', value: null },
+      { code: 'X_4', name: 'ROE', value: null },
+      { code: 'X_5', name: 'Hệ số nợ trên tài sản', value: null },
+      { code: 'X_6', name: 'Hệ số nợ trên VCSH', value: null },
+      { code: 'X_7', name: 'Khả năng thanh toán hiện hành', value: null },
+      { code: 'X_8', name: 'Khả năng thanh toán nhanh', value: null },
+      { code: 'X_9', name: 'Khả năng trả lãi', value: null },
+      { code: 'X_10', name: 'Khả năng trả nợ gốc', value: null },
+      { code: 'X_11', name: 'Khả năng tạo tiền/VCSH', value: null },
+      { code: 'X_12', name: 'Vòng quay hàng tồn kho', value: null },
+      { code: 'X_13', name: 'Kỳ thu tiền bình quân', value: null },
+      { code: 'X_14', name: 'Hiệu suất sử dụng tài sản', value: null }
+    ])
+    const isSurvivalAnalyzing = ref(false)
+    const survivalResult = ref(null)
+    const survivalChartContainer = ref(null)
+    const isSurvivalGeminiAnalyzing = ref(false)
+    const survivalGeminiAnalysis = ref('')
+    const isExportingSurvivalReport = ref(false)
+
+    // Chatbot - Survival Tab
+    const showSurvivalChatbot = ref(false)
+    const survivalChatMessages = ref([])
+    const survivalChatInput = ref('')
+    const isSurvivalChatLoading = ref(false)
+
+    // Computed: manual survival indicators valid
+    const isManualSurvivalValid = computed(() => {
+      return manualSurvivalIndicators.value.every(ind => ind.value !== null && !isNaN(ind.value))
     })
 
     // API Base URL
@@ -4083,6 +4493,287 @@ export default {
       return labels[severity] || severity
     }
 
+    // ====================================
+    // SURVIVAL ANALYSIS METHODS
+    // ====================================
+
+    const handleSurvivalXlsxFile = (event) => {
+      const file = event.target.files[0]
+      if (file) {
+        survivalXlsxFile.value = file
+        survivalXlsxFileName.value = file.name
+      }
+    }
+
+    const analyzeSurvival = async () => {
+      try {
+        isSurvivalAnalyzing.value = true
+        survivalResult.value = null
+        survivalGeminiAnalysis.value = ''
+
+        const formData = new FormData()
+
+        if (survivalInputMode.value === 'upload') {
+          // Upload mode
+          formData.append('file', survivalXlsxFile.value)
+        } else {
+          // Manual mode - convert indicators to JSON
+          const indicatorsObj = {}
+          manualSurvivalIndicators.value.forEach(ind => {
+            indicatorsObj[ind.code] = ind.value
+          })
+          formData.append('indicators_json', JSON.stringify(indicatorsObj))
+        }
+
+        const response = await axios.post(`${API_BASE}/predict-survival`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+
+        if (response.data.status === 'success') {
+          survivalResult.value = response.data
+
+          // Render survival curve chart
+          await nextTick()
+          renderSurvivalChart()
+
+          alert('✅ Phân tích Survival hoàn tất!')
+        } else {
+          throw new Error(response.data.detail || 'Lỗi không xác định')
+        }
+      } catch (error) {
+        console.error('Lỗi khi phân tích survival:', error)
+        alert(`❌ Lỗi: ${error.response?.data?.detail || error.message}`)
+      } finally {
+        isSurvivalAnalyzing.value = false
+      }
+    }
+
+    const renderSurvivalChart = () => {
+      if (!survivalResult.value || !survivalChartContainer.value) return
+
+      const survivalCurve = survivalResult.value.survival_curve
+      const timeline = survivalCurve.timeline
+      const probabilities = survivalCurve.survival_probabilities
+
+      const myChart = echarts.init(survivalChartContainer.value)
+
+      const option = {
+        title: {
+          text: 'Đường Cong Sống Sót (Survival Curve)',
+          left: 'center',
+          textStyle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#9C27B0'
+          }
+        },
+        tooltip: {
+          trigger: 'axis',
+          formatter: (params) => {
+            const time = params[0].axisValue
+            const survivalProb = params[0].data
+            const defaultProb = 1 - survivalProb
+            return `<div style="font-weight: bold; margin-bottom: 5px;">Tháng ${time}</div>
+                    <div>Xác suất sống sót: ${(survivalProb * 100).toFixed(2)}%</div>
+                    <div>Xác suất vỡ nợ: ${(defaultProb * 100).toFixed(2)}%</div>`
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          name: 'Thời gian (tháng)',
+          boundaryGap: false,
+          data: timeline,
+          nameTextStyle: {
+            fontSize: 14,
+            fontWeight: 'bold'
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: 'Xác suất Sống sót',
+          min: 0,
+          max: 1,
+          axisLabel: {
+            formatter: (value) => (value * 100).toFixed(0) + '%'
+          },
+          nameTextStyle: {
+            fontSize: 14,
+            fontWeight: 'bold'
+          }
+        },
+        series: [
+          {
+            name: 'Survival Probability',
+            type: 'line',
+            data: probabilities,
+            smooth: false,
+            lineStyle: {
+              color: '#9C27B0',
+              width: 3
+            },
+            itemStyle: {
+              color: '#9C27B0'
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(156, 39, 176, 0.3)' },
+                  { offset: 1, color: 'rgba(156, 39, 176, 0.05)' }
+                ]
+              }
+            },
+            markLine: {
+              data: [
+                {
+                  yAxis: 0.5,
+                  name: 'Median (50%)',
+                  label: {
+                    formatter: 'Median: 50%',
+                    position: 'insideEndTop'
+                  },
+                  lineStyle: {
+                    color: '#E91E63',
+                    type: 'dashed',
+                    width: 2
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+
+      myChart.setOption(option)
+    }
+
+    const getSurvivalGeminiAnalysis = async () => {
+      if (!survivalResult.value) {
+        alert('⚠️ Vui lòng phân tích survival trước!')
+        return
+      }
+
+      try {
+        isSurvivalGeminiAnalyzing.value = true
+
+        const response = await axios.post(`${API_BASE}/analyze-survival-gemini`, {
+          data: survivalResult.value
+        })
+
+        if (response.data.analysis) {
+          survivalGeminiAnalysis.value = response.data.analysis
+        } else {
+          throw new Error('Không nhận được phân tích từ Gemini')
+        }
+      } catch (error) {
+        console.error('Lỗi khi phân tích Gemini:', error)
+        alert(`❌ Lỗi: ${error.response?.data?.detail || error.message}`)
+      } finally {
+        isSurvivalGeminiAnalyzing.value = false
+      }
+    }
+
+    const exportSurvivalReport = async () => {
+      if (!survivalResult.value) {
+        alert('⚠️ Vui lòng phân tích survival trước!')
+        return
+      }
+
+      try {
+        isExportingSurvivalReport.value = true
+
+        const exportData = {
+          ...survivalResult.value,
+          gemini_analysis: survivalGeminiAnalysis.value
+        }
+
+        const response = await axios.post(`${API_BASE}/export-survival-report`, exportData, {
+          responseType: 'blob'
+        })
+
+        // Tạo link download
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', `Bao_cao_Survival_Analysis_${new Date().getTime()}.docx`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+
+        alert('✅ Đã xuất báo cáo Word thành công!')
+      } catch (error) {
+        console.error('Lỗi khi xuất báo cáo:', error)
+        alert(`❌ Lỗi: ${error.response?.data?.detail || error.message}`)
+      } finally {
+        isExportingSurvivalReport.value = false
+      }
+    }
+
+    const openSurvivalChatbot = () => {
+      if (!survivalResult.value) {
+        alert('⚠️ Vui lòng phân tích survival trước!')
+        return
+      }
+      showSurvivalChatbot.value = true
+    }
+
+    const closeSurvivalChatbot = () => {
+      showSurvivalChatbot.value = false
+    }
+
+    const sendSurvivalChatMessage = async () => {
+      if (!survivalChatInput.value.trim()) return
+
+      // Add user message
+      survivalChatMessages.value.push({
+        role: 'user',
+        content: survivalChatInput.value
+      })
+
+      const userQuestion = survivalChatInput.value
+      survivalChatInput.value = ''
+      isSurvivalChatLoading.value = true
+
+      try {
+        const response = await axios.post(`${API_BASE}/chat-assistant`, {
+          question: userQuestion,
+          context: survivalGeminiAnalysis.value || 'Phân tích Survival Analysis',
+          indicators: survivalResult.value.indicators,
+          prediction: {
+            median_time: survivalResult.value.median_time_to_default,
+            survival_probabilities: survivalResult.value.survival_probabilities,
+            risk_level: survivalResult.value.risk_classification.level
+          }
+        })
+
+        survivalChatMessages.value.push({
+          role: 'assistant',
+          content: response.data.answer
+        })
+      } catch (error) {
+        console.error('Lỗi chatbot:', error)
+        survivalChatMessages.value.push({
+          role: 'assistant',
+          content: '❌ Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.'
+        })
+      } finally {
+        isSurvivalChatLoading.value = false
+      }
+    }
+
     const renderMarkdown = (text) => {
       if (!text) return ''
 
@@ -4293,7 +4984,31 @@ export default {
       handleAnomalyCheckFile,
       checkAnomaly,
       renderAnomalyScoreGauge,
-      renderComparisonRadarChart
+      renderComparisonRadarChart,
+      // Survival Analysis - NEW FEATURE
+      survivalInputMode,
+      survivalXlsxFile,
+      survivalXlsxFileName,
+      manualSurvivalIndicators,
+      isSurvivalAnalyzing,
+      survivalResult,
+      survivalChartContainer,
+      isSurvivalGeminiAnalyzing,
+      survivalGeminiAnalysis,
+      isExportingSurvivalReport,
+      showSurvivalChatbot,
+      survivalChatMessages,
+      survivalChatInput,
+      isSurvivalChatLoading,
+      isManualSurvivalValid,
+      handleSurvivalXlsxFile,
+      analyzeSurvival,
+      renderSurvivalChart,
+      getSurvivalGeminiAnalysis,
+      exportSurvivalReport,
+      openSurvivalChatbot,
+      closeSurvivalChatbot,
+      sendSurvivalChatMessage
     }
   }
 }
