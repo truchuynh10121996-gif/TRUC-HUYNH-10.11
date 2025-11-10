@@ -2242,12 +2242,171 @@
               <strong>Mục đích:</strong> Phân tích thời gian sống sót của doanh nghiệp và dự báo thời điểm có nguy cơ vỡ nợ cao bằng mô hình Cox Proportional Hazards.<br>
               <strong>Cách sử dụng:</strong>
               <ol style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
-                <li>Bước 1: Upload file XLSX (3 sheets: CDKT, BCTN, LCTT) hoặc nhập thủ công 14 chỉ số tài chính</li>
-                <li>Bước 2: Nhấn "Phân tích Survival" để xem biểu đồ sống sót, median time-to-default và hazard ratios</li>
-                <li>Bước 3: Xem phân tích AI từ Gemini và xuất báo cáo Word nếu cần</li>
+                <li>Bước 1: Huấn luyện mô hình với dữ liệu lịch sử (có cột months_to_default và event)</li>
+                <li>Bước 2: Upload file XLSX (3 sheets: CDKT, BCTN, LCTT) hoặc nhập thủ công 14 chỉ số tài chính</li>
+                <li>Bước 3: Nhấn "Phân tích Survival" để xem biểu đồ sống sót, median time-to-default và hazard ratios</li>
+                <li>Bước 4: Xem phân tích AI từ Gemini và xuất báo cáo Word nếu cần</li>
               </ol>
-              <strong>Lưu ý:</strong> Mô hình cần được huấn luyện trước bằng dữ liệu lịch sử (có cột months_to_default).
+              <strong>Lưu ý:</strong> Mô hình cần được huấn luyện trước bằng dữ liệu lịch sử (có cột months_to_default và event).
             </div>
+          </div>
+
+          <!-- ===================== -->
+          <!-- TRAINING MODEL SECTION -->
+          <!-- ===================== -->
+          <div style="margin: 2rem 0;">
+            <div class="card" style="background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border: 2px solid #FF9800;">
+              <h3 style="color: #E65100; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.5rem;">🎓</span>
+                Huấn luyện Mô hình Survival Analysis
+              </h3>
+
+              <!-- Hướng dẫn Training -->
+              <div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #FF9800;">
+                <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #333;">
+                  <strong>📋 Yêu cầu dữ liệu training:</strong>
+                </p>
+                <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0; font-size: 0.9rem; color: #666;">
+                  <li>File CSV hoặc Excel với các cột: <strong>X_1, X_2, ..., X_14, months_to_default, event</strong></li>
+                  <li><strong>months_to_default:</strong> Số tháng từ thời điểm đánh giá đến khi vỡ nợ (hoặc thời gian quan sát)</li>
+                  <li><strong>event:</strong> 0 = không vỡ nợ (censored), 1 = vỡ nợ (event occurred)</li>
+                  <li>Dữ liệu lịch sử của nhiều doanh nghiệp (tối thiểu 50-100 mẫu)</li>
+                </ul>
+              </div>
+
+              <!-- Upload Training File -->
+              <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #E65100;">
+                  📂 Upload File Training Data:
+                </label>
+                <div class="upload-area" @click="$refs.survivalTrainInput.click()" style="border: 2px dashed #FF9800; background: white;">
+                  <div class="upload-icon" style="color: #FF9800;">📊</div>
+                  <p class="upload-text">{{ survivalTrainFileName || 'Tải lên file CSV/Excel chứa dữ liệu training' }}</p>
+                  <p class="upload-hint" style="color: #E65100;">
+                    File phải có cột: X_1 → X_14, months_to_default, event
+                  </p>
+                </div>
+                <input
+                  ref="survivalTrainInput"
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  @change="handleSurvivalTrainFile"
+                  style="display: none"
+                />
+              </div>
+
+              <!-- Training Button -->
+              <button
+                @click="trainSurvivalModel"
+                class="btn btn-primary"
+                :disabled="isSurvivalTraining || !survivalTrainFile"
+                style="width: 100%; background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); font-size: 1.1rem; padding: 1rem;"
+              >
+                {{ isSurvivalTraining ? '⏳ Đang huấn luyện mô hình...' : '🎓 Huấn luyện Mô hình Cox PH & RSF' }}
+              </button>
+
+              <!-- Training Results -->
+              <div v-if="survivalTrainResult" style="margin-top: 1.5rem;">
+                <div style="background: white; border-radius: 12px; padding: 1.5rem; border: 2px solid #4CAF50;">
+                  <h4 style="color: #2E7D32; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">✅</span>
+                    Kết quả Huấn luyện
+                  </h4>
+
+                  <!-- Cox Model Metrics -->
+                  <div v-if="survivalTrainResult.cox_model" style="margin-bottom: 1rem;">
+                    <h5 style="color: #1976D2; margin: 0 0 0.5rem 0; font-size: 1rem;">
+                      📊 Cox Proportional Hazards Model:
+                    </h5>
+                    <div style="background: #E3F2FD; padding: 1rem; border-radius: 8px;">
+                      <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                        <strong>Concordance Index (C-index):</strong>
+                        <span style="color: #1565C0; font-weight: bold; font-size: 1.1rem;">
+                          {{ survivalTrainResult.cox_model.c_index.toFixed(4) }}
+                        </span>
+                        <span style="color: #666; font-size: 0.85rem; margin-left: 0.5rem;">
+                          ({{ survivalTrainResult.cox_model.c_index > 0.7 ? '✅ Tốt' : survivalTrainResult.cox_model.c_index > 0.6 ? '⚠️ Trung bình' : '❌ Cần cải thiện' }})
+                        </span>
+                      </p>
+                      <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                        <strong>Log Likelihood:</strong>
+                        <span style="color: #1565C0;">{{ survivalTrainResult.cox_model.log_likelihood.toFixed(2) }}</span>
+                      </p>
+                      <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                        <strong>Số mẫu training:</strong>
+                        <span style="color: #1565C0;">{{ survivalTrainResult.cox_model.n_samples }}</span>
+                      </p>
+                      <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                        <strong>Số features:</strong>
+                        <span style="color: #1565C0;">{{ survivalTrainResult.cox_model.n_features }}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- RSF Model Metrics -->
+                  <div v-if="survivalTrainResult.rsf_model" style="margin-bottom: 1rem;">
+                    <h5 style="color: #7B1FA2; margin: 0 0 0.5rem 0; font-size: 1rem;">
+                      🌲 Random Survival Forest Model:
+                    </h5>
+                    <div style="background: #F3E5F5; padding: 1rem; border-radius: 8px;">
+                      <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                        <strong>Concordance Index (C-index):</strong>
+                        <span style="color: #7B1FA2; font-weight: bold; font-size: 1.1rem;">
+                          {{ survivalTrainResult.rsf_model.c_index.toFixed(4) }}
+                        </span>
+                        <span style="color: #666; font-size: 0.85rem; margin-left: 0.5rem;">
+                          ({{ survivalTrainResult.rsf_model.c_index > 0.7 ? '✅ Tốt' : survivalTrainResult.rsf_model.c_index > 0.6 ? '⚠️ Trung bình' : '❌ Cần cải thiện' }})
+                        </span>
+                      </p>
+                      <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                        <strong>Số cây (n_estimators):</strong>
+                        <span style="color: #7B1FA2;">{{ survivalTrainResult.rsf_model.n_estimators }}</span>
+                      </p>
+                      <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                        <strong>Số mẫu training:</strong>
+                        <span style="color: #7B1FA2;">{{ survivalTrainResult.rsf_model.n_samples }}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Kaplan-Meier Baseline -->
+                  <div v-if="survivalTrainResult.kaplan_meier" style="margin-bottom: 1rem;">
+                    <h5 style="color: #F57C00; margin: 0 0 0.5rem 0; font-size: 1rem;">
+                      📈 Kaplan-Meier Baseline Survival:
+                    </h5>
+                    <div style="background: #FFF3E0; padding: 1rem; border-radius: 8px;">
+                      <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                        <strong>Timeline:</strong>
+                        <span style="color: #E65100;">
+                          0 → {{ Math.max(...survivalTrainResult.kaplan_meier.timeline) }} tháng
+                        </span>
+                      </p>
+                      <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                        <strong>Số điểm trên đường cong:</strong>
+                        <span style="color: #E65100;">{{ survivalTrainResult.kaplan_meier.timeline.length }}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Success Message -->
+                  <div style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); padding: 1rem; border-radius: 8px; border-left: 4px solid #4CAF50; margin-top: 1rem;">
+                    <p style="margin: 0; color: #2E7D32; font-weight: 600; font-size: 0.95rem;">
+                      ✅ Mô hình đã được huấn luyện thành công! Bây giờ bạn có thể sử dụng phần "Dự báo Survival" bên dưới.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===================== -->
+          <!-- PREDICTION SECTION -->
+          <!-- ===================== -->
+          <div style="margin: 2rem 0;">
+            <h3 style="color: #9C27B0; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.5rem;">🔮</span>
+              Dự báo Survival cho Doanh nghiệp Mới
+            </h3>
           </div>
 
           <!-- Upload File hoặc Nhập Thủ công -->
@@ -2791,6 +2950,12 @@ export default {
     const survivalChatMessages = ref([])
     const survivalChatInput = ref('')
     const isSurvivalChatLoading = ref(false)
+
+    // Training - Survival Tab
+    const survivalTrainFile = ref(null)
+    const survivalTrainFileName = ref('')
+    const isSurvivalTraining = ref(false)
+    const survivalTrainResult = ref(null)
 
     // Computed: manual survival indicators valid
     const isManualSurvivalValid = computed(() => {
@@ -4505,6 +4670,55 @@ export default {
       }
     }
 
+    // ====================================
+    // SURVIVAL TRAINING FUNCTIONS
+    // ====================================
+    const handleSurvivalTrainFile = (event) => {
+      const file = event.target.files[0]
+      if (file) {
+        survivalTrainFile.value = file
+        survivalTrainFileName.value = file.name
+      }
+    }
+
+    const trainSurvivalModel = async () => {
+      if (!survivalTrainFile.value) {
+        alert('⚠️ Vui lòng upload file training data trước!')
+        return
+      }
+
+      try {
+        isSurvivalTraining.value = true
+        survivalTrainResult.value = null
+
+        const formData = new FormData()
+        formData.append('file', survivalTrainFile.value)
+
+        const response = await axios.post(`${API_BASE}/train-survival`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+
+        if (response.data.status === 'success') {
+          survivalTrainResult.value = response.data
+          alert('✅ Huấn luyện mô hình thành công!\n\n' +
+                `Cox C-index: ${response.data.cox_model.c_index.toFixed(4)}\n` +
+                `RSF C-index: ${response.data.rsf_model.c_index.toFixed(4)}`)
+        } else {
+          throw new Error(response.data.detail || 'Lỗi không xác định')
+        }
+      } catch (error) {
+        console.error('Lỗi khi huấn luyện survival model:', error)
+        alert(`❌ Lỗi khi huấn luyện: ${error.response?.data?.detail || error.message}`)
+      } finally {
+        isSurvivalTraining.value = false
+      }
+    }
+
+    // ====================================
+    // SURVIVAL PREDICTION FUNCTIONS
+    // ====================================
     const analyzeSurvival = async () => {
       try {
         isSurvivalAnalyzing.value = true
