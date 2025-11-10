@@ -18,6 +18,7 @@ import pandas as pd
 import os
 import tempfile
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from model import credit_model
 from gemini_api import get_gemini_analyzer
 from excel_processor import excel_processor
@@ -1737,6 +1738,7 @@ async def check_anomaly(
 async def train_survival_models(file: UploadFile = File(...)):
     """
     Huấn luyện Survival Analysis Models (Cox PH + Random Survival Forest)
+    Chạy song song 2 mô hình để tối ưu hiệu suất
 
     Input: CSV/Excel file với cột:
     - X_1 đến X_14: 14 chỉ số tài chính
@@ -1747,14 +1749,23 @@ async def train_survival_models(file: UploadFile = File(...)):
     - Training metrics (C-index, log-likelihood)
     - Kaplan-Meier baseline survival function
     """
+    print("\n" + "="*80)
+    print("🚀 [SURVIVAL TRAINING] Bắt đầu huấn luyện Cox PH & RSF models...")
+    print("="*80)
+
+    tmp_file_path = None
+
     try:
         # 1. LƯU FILE TẠM THỜI
+        print("📁 [SURVIVAL TRAINING] Đang lưu file tạm thời...")
         with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_file:
             tmp_file.write(await file.read())
             tmp_file_path = tmp_file.name
+        print(f"✅ [SURVIVAL TRAINING] Đã lưu file: {tmp_file_path}")
 
         try:
             # 2. ĐỌC DỮ LIỆU
+            print("📊 [SURVIVAL TRAINING] Đang đọc dữ liệu...")
             if file.filename.endswith('.csv'):
                 df = pd.read_csv(tmp_file_path)
             elif file.filename.endswith(('.xlsx', '.xls')):
@@ -1765,7 +1776,10 @@ async def train_survival_models(file: UploadFile = File(...)):
                     detail="File phải là định dạng CSV hoặc Excel (.xlsx, .xls)"
                 )
 
+            print(f"✅ [SURVIVAL TRAINING] Đã đọc {len(df)} dòng dữ liệu")
+
             # 3. KIỂM TRA CỘT CẦN THIẾT
+            print("🔍 [SURVIVAL TRAINING] Đang kiểm tra các cột dữ liệu...")
             required_features = [f'X_{i}' for i in range(1, 15)]
             required_cols = required_features + ['months_to_default']
 
@@ -1779,42 +1793,130 @@ async def train_survival_models(file: UploadFile = File(...)):
             # Nếu không có cột 'event', tự động tạo (giả định tất cả đều vỡ nợ)
             if 'event' not in df.columns:
                 df['event'] = 1
+                print("⚠️  [SURVIVAL TRAINING] Không tìm thấy cột 'event', tạo tự động (all events = 1)")
 
-            # 4. HUẤN LUYỆN COX MODEL
-            cox_result = survival_system.train_cox_model(
-                df,
-                duration_col='months_to_default',
-                event_col='event'
-            )
+            print(f"✅ [SURVIVAL TRAINING] Validation hoàn tất. Events: {int(df['event'].sum())}, Censored: {int((1-df['event']).sum())}")
 
-            # 5. HUẤN LUYỆN RANDOM SURVIVAL FOREST
-            rsf_result = survival_system.train_random_survival_forest(
-                df,
-                duration_col='months_to_default',
-                event_col='event',
-                n_estimators=100
-            )
+            # 4. ĐỊNH NGHĨA HÀM HUẤN LUYỆN RIÊNG BIỆT (ĐỂ CHẠY SONG SONG)
+            def train_cox_wrapper():
+                """Wrapper function để train Cox model với error handling"""
+                try:
+                    print("🔄 [COX MODEL] Bắt đầu huấn luyện Cox Proportional Hazards Model...")
+                    cox_result = survival_system.train_cox_model(
+                        df.copy(),  # Truyền copy để tránh race condition
+                        duration_col='months_to_default',
+                        event_col='event'
+                    )
+                    print(f"✅ [COX MODEL] Hoàn thành! C-index: {cox_result['c_index']:.4f}")
+                    return {"success": True, "data": cox_result}
+                except Exception as e:
+                    print(f"❌ [COX MODEL] Lỗi: {str(e)}")
+                    return {"success": False, "error": str(e), "model": "Cox PH"}
 
-            # 6. TÍNH KAPLAN-MEIER BASELINE
-            km_result = survival_system.calculate_kaplan_meier(
-                df,
-                duration_col='months_to_default',
-                event_col='event'
-            )
+            def train_rsf_wrapper():
+                """Wrapper function để train RSF model với error handling"""
+                try:
+                    print("🔄 [RSF MODEL] Bắt đầu huấn luyện Random Survival Forest Model...")
+                    rsf_result = survival_system.train_random_survival_forest(
+                        df.copy(),  # Truyền copy để tránh race condition
+                        duration_col='months_to_default',
+                        event_col='event',
+                        n_estimators=100
+                    )
+                    print(f"✅ [RSF MODEL] Hoàn thành! C-index: {rsf_result['c_index']:.4f}")
+                    return {"success": True, "data": rsf_result}
+                except Exception as e:
+                    print(f"❌ [RSF MODEL] Lỗi: {str(e)}")
+                    return {"success": False, "error": str(e), "model": "RSF"}
 
-            # 7. LẤY HAZARD RATIOS (TOP 14)
-            hazard_ratios = survival_system.get_hazard_ratios(top_k=14)
+            # 5. CHẠY SONG SONG 2 MODELS VỚI THREADPOOLEXECUTOR
+            print("\n⚡ [SURVIVAL TRAINING] Đang chạy song song Cox PH và RSF models...")
+            cox_result = None
+            rsf_result = None
+            training_errors = []
 
-            # 8. LƯU MODELS
-            survival_system.save_models('survival_models.pkl')
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                # Submit cả 2 tasks
+                future_cox = executor.submit(train_cox_wrapper)
+                future_rsf = executor.submit(train_rsf_wrapper)
+
+                # Thu thập kết quả
+                for future in as_completed([future_cox, future_rsf]):
+                    result = future.result()
+                    if result["success"]:
+                        # Xác định model nào đã hoàn thành
+                        if "model_type" in result["data"]:
+                            if "Cox" in result["data"]["model_type"]:
+                                cox_result = result["data"]
+                            elif "Forest" in result["data"]["model_type"]:
+                                rsf_result = result["data"]
+                    else:
+                        training_errors.append({
+                            "model": result.get("model", "Unknown"),
+                            "error": result.get("error", "Unknown error")
+                        })
+
+            print("\n" + "="*80)
+            print("📊 [SURVIVAL TRAINING] Kết quả huấn luyện song song:")
+            print(f"   - Cox PH: {'✅ Thành công' if cox_result else '❌ Thất bại'}")
+            print(f"   - RSF: {'✅ Thành công' if rsf_result else '❌ Thất bại'}")
+            print("="*80)
+
+            # 6. TÍNH KAPLAN-MEIER BASELINE (chỉ khi có ít nhất 1 model thành công)
+            km_result = None
+            if cox_result or rsf_result:
+                try:
+                    print("📈 [SURVIVAL TRAINING] Đang tính Kaplan-Meier baseline...")
+                    km_result = survival_system.calculate_kaplan_meier(
+                        df,
+                        duration_col='months_to_default',
+                        event_col='event'
+                    )
+                    print("✅ [SURVIVAL TRAINING] Kaplan-Meier baseline đã tính xong")
+                except Exception as e:
+                    print(f"⚠️  [SURVIVAL TRAINING] Không thể tính Kaplan-Meier: {str(e)}")
+                    km_result = {"error": str(e)}
+
+            # 7. LẤY HAZARD RATIOS (chỉ khi Cox model thành công)
+            hazard_ratios = None
+            if cox_result:
+                try:
+                    print("📊 [SURVIVAL TRAINING] Đang tính hazard ratios...")
+                    hazard_ratios = survival_system.get_hazard_ratios(top_k=14)
+                    print(f"✅ [SURVIVAL TRAINING] Đã tính {len(hazard_ratios)} hazard ratios")
+                except Exception as e:
+                    print(f"⚠️  [SURVIVAL TRAINING] Không thể tính hazard ratios: {str(e)}")
+                    hazard_ratios = []
+
+            # 8. LƯU MODELS (chỉ khi có ít nhất 1 model thành công)
+            if cox_result or rsf_result:
+                try:
+                    print("💾 [SURVIVAL TRAINING] Đang lưu models...")
+                    survival_system.save_models('survival_models.pkl')
+                    print("✅ [SURVIVAL TRAINING] Models đã được lưu vào survival_models.pkl")
+                except Exception as e:
+                    print(f"⚠️  [SURVIVAL TRAINING] Không thể lưu models: {str(e)}")
+
+            # 9. TRẢ VỀ KẾT QUẢ (JSON SERIALIZABLE)
+            print("\n" + "="*80)
+            print("🎉 [SURVIVAL TRAINING] Hoàn thành quá trình training!")
+            print("="*80 + "\n")
+
+            # Kiểm tra xem có ít nhất 1 model thành công không
+            if not cox_result and not rsf_result:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Cả 2 models đều thất bại. Errors: {training_errors}"
+                )
 
             return {
                 "status": "success",
                 "message": "Đã huấn luyện thành công các mô hình Survival Analysis",
-                "cox_model": cox_result,
-                "rsf_model": rsf_result,
-                "kaplan_meier": km_result,
-                "hazard_ratios": hazard_ratios,
+                "cox_model": cox_result if cox_result else {"status": "failed", "error": "Training failed"},
+                "rsf_model": rsf_result if rsf_result else {"status": "failed", "error": "Training failed"},
+                "kaplan_meier": km_result if km_result else {"status": "not_computed"},
+                "hazard_ratios": hazard_ratios if hazard_ratios else [],
+                "training_errors": training_errors,
                 "n_samples": len(df),
                 "n_events": int(df['event'].sum()),
                 "n_censored": int((1 - df['event']).sum())
@@ -1822,14 +1924,20 @@ async def train_survival_models(file: UploadFile = File(...)):
 
         finally:
             # Xóa file tạm
-            try:
-                os.unlink(tmp_file_path)
-            except Exception:
-                pass
+            if tmp_file_path and os.path.exists(tmp_file_path):
+                try:
+                    os.unlink(tmp_file_path)
+                    print(f"🗑️  [SURVIVAL TRAINING] Đã xóa file tạm: {tmp_file_path}")
+                except Exception as e:
+                    print(f"⚠️  [SURVIVAL TRAINING] Không thể xóa file tạm: {str(e)}")
 
     except HTTPException:
+        print(f"❌ [SURVIVAL TRAINING] HTTPException: {str(e)}")
         raise
     except Exception as e:
+        print(f"❌ [SURVIVAL TRAINING] Lỗi không mong muốn: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Lỗi khi huấn luyện survival models: {str(e)}"
