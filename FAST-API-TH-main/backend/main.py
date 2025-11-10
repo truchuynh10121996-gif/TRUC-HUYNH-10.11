@@ -24,6 +24,7 @@ from excel_processor import excel_processor
 from report_generator import ReportGenerator
 from early_warning import early_warning_system
 from anomaly_detection import anomaly_system
+from survival_analysis import survival_system
 
 # Khởi tạo FastAPI app
 app = FastAPI(
@@ -1726,6 +1727,337 @@ async def check_anomaly(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi khi kiểm tra bất thường: {str(e)}")
+
+
+# ================================================================================================
+# SURVIVAL ANALYSIS ENDPOINTS
+# ================================================================================================
+
+@app.post("/train-survival")
+async def train_survival_models(file: UploadFile = File(...)):
+    """
+    Huấn luyện Survival Analysis Models (Cox PH + Random Survival Forest)
+
+    Input: CSV/Excel file với cột:
+    - X_1 đến X_14: 14 chỉ số tài chính
+    - months_to_default: Thời gian đến khi vỡ nợ (tháng)
+    - event: 1 = vỡ nợ, 0 = censored (chưa vỡ nợ)
+
+    Returns:
+    - Training metrics (C-index, log-likelihood)
+    - Kaplan-Meier baseline survival function
+    """
+    try:
+        # 1. LƯU FILE TẠM THỜI
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_file:
+            tmp_file.write(await file.read())
+            tmp_file_path = tmp_file.name
+
+        try:
+            # 2. ĐỌC DỮ LIỆU
+            if file.filename.endswith('.csv'):
+                df = pd.read_csv(tmp_file_path)
+            elif file.filename.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(tmp_file_path)
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="File phải là định dạng CSV hoặc Excel (.xlsx, .xls)"
+                )
+
+            # 3. KIỂM TRA CỘT CẦN THIẾT
+            required_features = [f'X_{i}' for i in range(1, 15)]
+            required_cols = required_features + ['months_to_default']
+
+            missing_cols = [col for col in required_cols if col not in df.columns]
+            if missing_cols:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Thiếu các cột: {', '.join(missing_cols)}"
+                )
+
+            # Nếu không có cột 'event', tự động tạo (giả định tất cả đều vỡ nợ)
+            if 'event' not in df.columns:
+                df['event'] = 1
+
+            # 4. HUẤN LUYỆN COX MODEL
+            cox_result = survival_system.train_cox_model(
+                df,
+                duration_col='months_to_default',
+                event_col='event'
+            )
+
+            # 5. HUẤN LUYỆN RANDOM SURVIVAL FOREST
+            rsf_result = survival_system.train_random_survival_forest(
+                df,
+                duration_col='months_to_default',
+                event_col='event',
+                n_estimators=100
+            )
+
+            # 6. TÍNH KAPLAN-MEIER BASELINE
+            km_result = survival_system.calculate_kaplan_meier(
+                df,
+                duration_col='months_to_default',
+                event_col='event'
+            )
+
+            # 7. LẤY HAZARD RATIOS (TOP 14)
+            hazard_ratios = survival_system.get_hazard_ratios(top_k=14)
+
+            # 8. LƯU MODELS
+            survival_system.save_models('survival_models.pkl')
+
+            return {
+                "status": "success",
+                "message": "Đã huấn luyện thành công các mô hình Survival Analysis",
+                "cox_model": cox_result,
+                "rsf_model": rsf_result,
+                "kaplan_meier": km_result,
+                "hazard_ratios": hazard_ratios,
+                "n_samples": len(df),
+                "n_events": int(df['event'].sum()),
+                "n_censored": int((1 - df['event']).sum())
+            }
+
+        finally:
+            # Xóa file tạm
+            try:
+                os.unlink(tmp_file_path)
+            except Exception:
+                pass
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi huấn luyện survival models: {str(e)}"
+        )
+
+
+@app.post("/predict-survival")
+async def predict_survival(
+    file: Optional[UploadFile] = File(None),
+    indicators_json: Optional[str] = Form(None)
+):
+    """
+    Dự báo Survival Curve cho một doanh nghiệp mới
+
+    Input:
+    - file: XLSX file (3 sheets: CDKT, BCTN, LCTT)
+    - indicators_json: JSON string với 14 chỉ số
+
+    Returns:
+    - Survival curve (timeline + probabilities)
+    - Median time-to-default
+    - Survival probabilities tại 6/12/24 tháng
+    - Risk classification
+    - Hazard ratios (top 5 quan trọng nhất)
+    """
+    try:
+        import json
+
+        # 1. LẤY 14 CHỈ SỐ TÀI CHÍNH
+        if file:
+            # Từ file XLSX
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
+                tmp_file.write(await file.read())
+                tmp_file_path = tmp_file.name
+
+            try:
+                excel_processor.read_excel(tmp_file_path)
+                indicators = excel_processor.calculate_14_indicators()
+            finally:
+                try:
+                    os.unlink(tmp_file_path)
+                except Exception:
+                    pass
+
+        elif indicators_json:
+            # Từ JSON
+            indicators = json.loads(indicators_json)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Vui lòng cung cấp file XLSX hoặc dữ liệu 14 chỉ số"
+            )
+
+        # 2. KIỂM TRA MODEL ĐÃ ĐƯỢC HUẤN LUYỆN
+        if survival_system.cox_model is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Mô hình chưa được huấn luyện. Vui lòng gọi /train-survival trước."
+            )
+
+        # 3. DỰ BÁO SURVIVAL CURVE (sử dụng Cox model)
+        survival_curve = survival_system.predict_survival_curve(
+            indicators=indicators,
+            model_type='cox'
+        )
+
+        # 4. TÍNH MEDIAN TIME-TO-DEFAULT
+        median_time = survival_system.calculate_median_time_to_default(
+            indicators=indicators,
+            model_type='cox'
+        )
+
+        # 5. TÍNH SURVIVAL PROBABILITIES TẠI CÁC THỜI ĐIỂM CỤ THỂ
+        survival_probs = survival_system.get_survival_probabilities_at_times(
+            indicators=indicators,
+            times=[6, 12, 24],
+            model_type='cox'
+        )
+
+        # 6. PHÂN LOẠI RỦI RO
+        risk_info = survival_system.get_risk_classification(median_time)
+
+        # 7. LẤY HAZARD RATIOS (TOP 5)
+        hazard_ratios = survival_system.get_hazard_ratios(top_k=5)
+
+        # 8. TẠO CẢNH BÁO NẾU RỦI RO CAO
+        warning = None
+        if median_time < 12:
+            warning = {
+                'type': 'HIGH_RISK',
+                'message': f'⚠️ CẢNH BÁO: Median time-to-default chỉ {median_time:.1f} tháng! Doanh nghiệp có nguy cơ vỡ nợ rất cao.',
+                'recommendation': 'Ngân hàng nên từ chối cho vay hoặc yêu cầu tài sản thế chấp bổ sung.'
+            }
+        elif median_time < 18:
+            warning = {
+                'type': 'MEDIUM_RISK',
+                'message': f'⚠️ LƯU Ý: Median time-to-default là {median_time:.1f} tháng. Cần theo dõi chặt chẽ.',
+                'recommendation': 'Xem xét hạn mức tín dụng thấp hơn và yêu cầu báo cáo tài chính định kỳ.'
+            }
+
+        return {
+            "status": "success",
+            "indicators": indicators,
+            "survival_curve": survival_curve,
+            "median_time_to_default": float(median_time),
+            "survival_probabilities": survival_probs,
+            "risk_classification": risk_info,
+            "hazard_ratios": hazard_ratios,
+            "warning": warning
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi dự báo survival: {str(e)}"
+        )
+
+
+@app.get("/survival-metrics")
+async def get_survival_metrics():
+    """
+    Lấy các metrics và hazard ratios từ trained models
+
+    Returns:
+    - Cox model metrics (C-index, log-likelihood)
+    - RSF model metrics
+    - Hazard ratios cho tất cả 14 chỉ số
+    - Kaplan-Meier baseline survival
+    """
+    try:
+        # Kiểm tra model đã được huấn luyện
+        if survival_system.cox_model is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Mô hình chưa được huấn luyện. Vui lòng gọi /train-survival trước."
+            )
+
+        # Lấy hazard ratios (tất cả 14 chỉ số)
+        hazard_ratios = survival_system.get_hazard_ratios(top_k=14)
+
+        # Lấy Kaplan-Meier baseline
+        km_baseline = survival_system.calculate_kaplan_meier()
+
+        return {
+            "status": "success",
+            "metrics": survival_system.metrics,
+            "hazard_ratios": hazard_ratios,
+            "kaplan_meier_baseline": km_baseline
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi lấy survival metrics: {str(e)}"
+        )
+
+
+@app.post("/analyze-survival-gemini")
+async def analyze_survival_gemini(
+    data: Dict[str, Any]
+):
+    """
+    Phân tích kết quả Survival Analysis bằng Gemini AI
+
+    Input:
+    - data: Dict chứa survival analysis results
+
+    Returns:
+    - Dict với analysis text từ Gemini
+    """
+    try:
+        # Lấy data từ request
+        survival_data = data.get('data', {})
+
+        # Phân tích bằng Gemini
+        analyzer = get_gemini_analyzer(GEMINI_API_KEY)
+        analysis = analyzer.analyze_survival_results(survival_data)
+
+        return {
+            "status": "success",
+            "analysis": analysis
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi phân tích survival bằng Gemini: {str(e)}"
+        )
+
+
+@app.post("/export-survival-report")
+async def export_survival_report(
+    data: Dict[str, Any]
+):
+    """
+    Xuất báo cáo Survival Analysis ra file Word
+
+    Input:
+    - data: Dict chứa survival analysis results và Gemini analysis
+
+    Returns:
+    - File Word báo cáo
+    """
+    try:
+        # Tạo tên file unique
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"Bao_cao_Survival_Analysis_{timestamp}.docx"
+        filepath = os.path.join(tempfile.gettempdir(), filename)
+
+        # Tạo báo cáo
+        report_path = report_generator.generate_survival_report(data, filepath)
+
+        # Trả về file
+        return FileResponse(
+            path=report_path,
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi xuất báo cáo: {str(e)}"
+        )
 
 
 # ================================================================================================

@@ -259,6 +259,266 @@ class ReportGenerator:
         except Exception as e:
             raise ValueError(f"Lỗi khi tạo báo cáo: {str(e)}")
 
+    def generate_survival_report(self, data: Dict[str, Any], output_path: str = 'bao_cao_survival_analysis.docx') -> str:
+        """
+        Tạo báo cáo Survival Analysis
+
+        Args:
+            data: Dữ liệu bao gồm:
+                - indicators: 14 chỉ số tài chính
+                - median_time_to_default: Median time
+                - survival_probabilities: Xác suất sống sót tại 6/12/24 tháng
+                - risk_classification: Phân loại rủi ro
+                - hazard_ratios: Top hazard ratios
+                - survival_curve: Timeline và probabilities
+                - gemini_analysis: Phân tích từ Gemini
+                - warning: Cảnh báo (nếu có)
+            output_path: Đường dẫn file output
+
+        Returns:
+            Đường dẫn file báo cáo
+        """
+        try:
+            # Tạo document mới
+            self.doc = Document()
+            self.setup_styles()
+
+            # Lấy dữ liệu
+            indicators = data.get('indicators', {})
+            median_time = data.get('median_time_to_default', 0)
+            survival_probs = data.get('survival_probabilities', {})
+            risk_info = data.get('risk_classification', {})
+            hazard_ratios = data.get('hazard_ratios', [])
+            survival_curve = data.get('survival_curve', {})
+            gemini_analysis = data.get('gemini_analysis', 'Không có phân tích')
+            warning = data.get('warning', None)
+
+            # ================================
+            # HEADER
+            # ================================
+            title = self.doc.add_heading('BÁO CÁO PHÂN TÍCH SỐNG SÓT & TIME-TO-DEFAULT', 0)
+            title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            title_run = title.runs[0]
+            title_run.font.color.rgb = RGBColor(0, 166, 81)
+            title_run.font.bold = True
+
+            subtitle = self.doc.add_paragraph('HỆ THỐNG SURVIVAL ANALYSIS - COX PROPORTIONAL HAZARDS MODEL')
+            subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            subtitle_run = subtitle.runs[0]
+            subtitle_run.font.size = Pt(14)
+            subtitle_run.font.color.rgb = RGBColor(100, 100, 100)
+
+            date_para = self.doc.add_paragraph(f'Ngày tạo báo cáo: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
+            date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            date_run = date_para.runs[0]
+            date_run.font.size = Pt(11)
+            date_run.font.italic = True
+
+            self.doc.add_paragraph()
+
+            # ================================
+            # I. TỔNG QUAN KẾT QUẢ
+            # ================================
+            self.add_section_title('I. TỔNG QUAN KẾT QUẢ SURVIVAL ANALYSIS')
+
+            # Median Time-to-Default
+            median_para = self.doc.add_paragraph()
+            median_para.add_run('Median Time-to-Default: ').bold = True
+            median_para.add_run(f'{median_time:.1f} tháng')
+            median_run = median_para.runs[1]
+            median_run.font.size = Pt(14)
+            median_run.font.color.rgb = RGBColor(220, 20, 60) if median_time < 12 else RGBColor(0, 166, 81)
+
+            # Giải thích
+            explanation = self.doc.add_paragraph(
+                f'Doanh nghiệp có 50% xác suất vỡ nợ trong vòng {median_time:.1f} tháng tới.'
+            )
+            explanation_run = explanation.runs[0]
+            explanation_run.font.italic = True
+
+            # Phân loại rủi ro
+            risk_para = self.doc.add_paragraph()
+            risk_para.add_run('Mức độ Rủi ro: ').bold = True
+            risk_para.add_run(f'{risk_info.get("level", "N/A")}')
+            risk_para.add_run(f'\n{risk_info.get("description", "")}')
+
+            self.doc.add_paragraph()
+
+            # Cảnh báo nếu có
+            if warning:
+                warning_para = self.doc.add_paragraph()
+                warning_para.add_run('⚠️ CẢNH BÁO: ').bold = True
+                warning_para.add_run(warning.get('message', ''))
+                warning_run = warning_para.runs[0]
+                warning_run.font.color.rgb = RGBColor(220, 20, 60)
+                warning_run.font.size = Pt(13)
+
+                rec_para = self.doc.add_paragraph()
+                rec_para.add_run('Khuyến nghị: ').bold = True
+                rec_para.add_run(warning.get('recommendation', ''))
+
+                self.doc.add_paragraph()
+
+            # ================================
+            # II. XÁC SUẤT SỐNG SÓT THEO THỜI GIAN
+            # ================================
+            self.add_section_title('II. XÁC SUẤT SỐNG SÓT THEO THỜI GIAN')
+
+            # Tạo bảng xác suất
+            prob_table = self.doc.add_table(rows=4, cols=3)
+            prob_table.style = 'Light Grid Accent 1'
+
+            # Header
+            header_cells = prob_table.rows[0].cells
+            header_cells[0].text = 'Thời điểm'
+            header_cells[1].text = 'Xác suất Sống sót'
+            header_cells[2].text = 'Xác suất Vỡ nợ'
+
+            # Dữ liệu
+            for i, time in enumerate([6, 12, 24], 1):
+                surv_prob = survival_probs.get(time, 0)
+                default_prob = 1 - surv_prob
+
+                row_cells = prob_table.rows[i].cells
+                row_cells[0].text = f'{time} tháng'
+                row_cells[1].text = f'{surv_prob * 100:.2f}%'
+                row_cells[2].text = f'{default_prob * 100:.2f}%'
+
+            self.doc.add_paragraph()
+
+            # ================================
+            # III. 14 CHỈ SỐ TÀI CHÍNH
+            # ================================
+            self.add_section_title('III. 14 CHỈ SỐ TÀI CHÍNH DOANH NGHIỆP')
+
+            indicator_names = {
+                'X_1': 'Biên lợi nhuận gộp',
+                'X_2': 'Biên lợi nhuận trước thuế',
+                'X_3': 'ROA (Return on Assets)',
+                'X_4': 'ROE (Return on Equity)',
+                'X_5': 'Hệ số nợ trên tài sản',
+                'X_6': 'Hệ số nợ trên VCSH',
+                'X_7': 'Khả năng thanh toán hiện hành',
+                'X_8': 'Khả năng thanh toán nhanh',
+                'X_9': 'Khả năng trả lãi',
+                'X_10': 'Khả năng trả nợ gốc',
+                'X_11': 'Khả năng tạo tiền/VCSH',
+                'X_12': 'Vòng quay hàng tồn kho',
+                'X_13': 'Kỳ thu tiền bình quân',
+                'X_14': 'Hiệu suất sử dụng tài sản'
+            }
+
+            # Tạo bảng chỉ số
+            indicators_table = self.doc.add_table(rows=15, cols=3)
+            indicators_table.style = 'Light Grid Accent 1'
+
+            # Header
+            header_cells = indicators_table.rows[0].cells
+            header_cells[0].text = 'Mã'
+            header_cells[1].text = 'Tên chỉ số'
+            header_cells[2].text = 'Giá trị'
+
+            # Dữ liệu
+            for i, key in enumerate(sorted(indicators.keys()), 1):
+                if key in indicator_names:
+                    row_cells = indicators_table.rows[i].cells
+                    row_cells[0].text = key
+                    row_cells[1].text = indicator_names[key]
+                    row_cells[2].text = f'{indicators[key]:.4f}'
+
+            self.doc.add_paragraph()
+
+            # ================================
+            # IV. HAZARD RATIOS - YẾU TỐ RỦI RO
+            # ================================
+            self.add_section_title('IV. HAZARD RATIOS - YẾU TỐ RỦI RO QUAN TRỌNG')
+
+            # Giải thích Hazard Ratio
+            explanation = self.doc.add_paragraph(
+                'Hazard Ratio (HR) đo lường mức độ ảnh hưởng của từng chỉ số tài chính đến rủi ro vỡ nợ:'
+            )
+            explanation.add_run('\n• HR > 1: Chỉ số này làm TĂNG nguy cơ vỡ nợ (càng cao càng nguy hiểm)')
+            explanation.add_run('\n• HR < 1: Chỉ số này làm GIẢM nguy cơ vỡ nợ (bảo vệ doanh nghiệp)')
+            explanation.add_run('\n• HR = 1: Chỉ số không ảnh hưởng đến rủi ro')
+
+            self.doc.add_paragraph()
+
+            # Tạo bảng hazard ratios
+            if hazard_ratios:
+                hr_table = self.doc.add_table(rows=len(hazard_ratios) + 1, cols=4)
+                hr_table.style = 'Light Grid Accent 1'
+
+                # Header
+                header_cells = hr_table.rows[0].cells
+                header_cells[0].text = 'Chỉ số'
+                header_cells[1].text = 'Hazard Ratio'
+                header_cells[2].text = 'Diễn giải'
+                header_cells[3].text = 'Ý nghĩa'
+
+                # Dữ liệu
+                for i, hr in enumerate(hazard_ratios, 1):
+                    feature_name = hr.get('feature_name', 'N/A')
+                    ratio = hr.get('hazard_ratio', 1.0)
+                    significance = hr.get('significance', 'N/A')
+
+                    # Diễn giải
+                    if ratio > 1:
+                        interpretation = f'Tăng rủi ro {(ratio - 1) * 100:.1f}%'
+                    elif ratio < 1:
+                        interpretation = f'Giảm rủi ro {(1 - ratio) * 100:.1f}%'
+                    else:
+                        interpretation = 'Không ảnh hưởng'
+
+                    row_cells = hr_table.rows[i].cells
+                    row_cells[0].text = feature_name
+                    row_cells[1].text = f'{ratio:.3f}'
+                    row_cells[2].text = interpretation
+                    row_cells[3].text = significance
+
+            self.doc.add_paragraph()
+
+            # ================================
+            # V. PHÂN TÍCH GEMINI AI
+            # ================================
+            self.add_section_title('V. PHÂN TÍCH CHUYÊN SÂU TỪ GEMINI AI')
+
+            # Thêm nội dung phân tích
+            paragraphs = gemini_analysis.split('\n')
+            for para_text in paragraphs:
+                if para_text.strip():
+                    para = self.doc.add_paragraph(para_text.strip())
+                    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+            self.doc.add_paragraph()
+
+            # ================================
+            # FOOTER
+            # ================================
+            self.doc.add_paragraph()
+            self.doc.add_paragraph('_' * 80)
+
+            footer = self.doc.add_paragraph()
+            footer.add_run('Báo cáo được tạo tự động bởi ').italic = True
+            footer.add_run('Hệ thống Survival Analysis - Agribank').bold = True
+            footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+            disclaimer = self.doc.add_paragraph(
+                'Lưu ý: Báo cáo này chỉ mang tính chất tham khảo. '
+                'Quyết định cho vay cần được xem xét bởi các chuyên gia tín dụng và tuân thủ quy trình nội bộ của ngân hàng.'
+            )
+            disclaimer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            disclaimer_run = disclaimer.runs[0]
+            disclaimer_run.font.size = Pt(10)
+            disclaimer_run.font.italic = True
+            disclaimer_run.font.color.rgb = RGBColor(150, 150, 150)
+
+            # Lưu file
+            self.doc.save(output_path)
+            return output_path
+
+        except Exception as e:
+            raise ValueError(f"Lỗi khi tạo báo cáo survival analysis: {str(e)}")
+
 
 # Instance global
 report_generator = ReportGenerator()
