@@ -4687,9 +4687,10 @@ export default {
         return
       }
 
+      isSurvivalTraining.value = true
+      survivalTrainResult.value = null
+
       try {
-        isSurvivalTraining.value = true
-        survivalTrainResult.value = null
 
         const formData = new FormData()
         formData.append('file', survivalTrainFile.value)
@@ -5215,6 +5216,14 @@ export default {
       survivalChatInput,
       isSurvivalChatLoading,
       isManualSurvivalValid,
+      // Survival Training
+      survivalTrainFile,
+      survivalTrainFileName,
+      isSurvivalTraining,
+      survivalTrainResult,
+      handleSurvivalTrainFile,
+      trainSurvivalModel,
+      // Survival Prediction
       handleSurvivalXlsxFile,
       analyzeSurvival,
       renderSurvivalChart,
