@@ -776,6 +776,174 @@ Hãy trình bày rõ ràng, có cấu trúc, tập trung vào insight chiến l�
         except Exception as e:
             return f"❌ Lỗi khi phân tích kịch bản: {str(e)}"
 
+    def analyze_survival_results(self, data: Dict[str, Any]) -> str:
+        """
+        Phân tích kết quả Survival Analysis bằng Gemini AI
+
+        Args:
+            data: Dict chứa:
+                - indicators: 14 chỉ số tài chính
+                - median_time_to_default: Median time (tháng)
+                - survival_probabilities: Prob tại 6/12/24 tháng
+                - risk_classification: Thông tin phân loại rủi ro
+                - hazard_ratios: Top 5 hazard ratios
+                - survival_curve: Timeline và probabilities
+                - warning: Cảnh báo (nếu có)
+
+        Returns:
+            Phân tích chi tiết từ Gemini
+        """
+        # Lấy dữ liệu
+        indicators = data.get('indicators', {})
+        median_time = data.get('median_time_to_default', 0)
+        survival_probs = data.get('survival_probabilities', {})
+        risk_info = data.get('risk_classification', {})
+        hazard_ratios = data.get('hazard_ratios', [])
+        warning = data.get('warning', None)
+
+        # Tạo danh sách 14 chỉ số với tên tiếng Việt
+        indicator_names = {
+            'X_1': 'Biên lợi nhuận gộp',
+            'X_2': 'Biên lợi nhuận trước thuế',
+            'X_3': 'ROA',
+            'X_4': 'ROE',
+            'X_5': 'Hệ số nợ trên tài sản',
+            'X_6': 'Hệ số nợ trên VCSH',
+            'X_7': 'Khả năng thanh toán hiện hành',
+            'X_8': 'Khả năng thanh toán nhanh',
+            'X_9': 'Khả năng trả lãi',
+            'X_10': 'Khả năng trả nợ gốc',
+            'X_11': 'Khả năng tạo tiền/VCSH',
+            'X_12': 'Vòng quay hàng tồn kho',
+            'X_13': 'Kỳ thu tiền bình quân',
+            'X_14': 'Hiệu suất sử dụng tài sản'
+        }
+
+        # Format 14 chỉ số
+        indicators_text = ""
+        for key in sorted(indicators.keys()):
+            if key in indicator_names:
+                indicators_text += f"- {key} ({indicator_names[key]}): {indicators[key]:.4f}\n"
+
+        # Format hazard ratios
+        hazard_text = ""
+        for i, hr in enumerate(hazard_ratios, 1):
+            feature_name = hr.get('feature_name', 'N/A')
+            ratio = hr.get('hazard_ratio', 1.0)
+            significance = hr.get('significance', 'N/A')
+
+            # Giải thích hazard ratio
+            if ratio > 1:
+                interpretation = f"tăng rủi ro {(ratio - 1) * 100:.1f}%"
+            elif ratio < 1:
+                interpretation = f"giảm rủi ro {(1 - ratio) * 100:.1f}%"
+            else:
+                interpretation = "không ảnh hưởng"
+
+            hazard_text += f"{i}. {feature_name}: HR = {ratio:.3f} ({interpretation}) - {significance}\n"
+
+        # Format survival probabilities
+        survival_text = ""
+        for time, prob in sorted(survival_probs.items()):
+            default_prob = (1 - prob) * 100
+            survival_text += f"- Tại tháng {int(time)}: Xác suất sống sót {prob * 100:.1f}%, Xác suất vỡ nợ {default_prob:.1f}%\n"
+
+        # Phân loại cấp độ rủi ro
+        risk_level = risk_info.get('level', 'N/A')
+        risk_description = risk_info.get('description', 'N/A')
+
+        # Cảnh báo
+        warning_text = ""
+        if warning:
+            warning_text = f"\n⚠️ **CẢNH BÁO:** {warning.get('message', '')}\n"
+            warning_text += f"**Khuyến nghị:** {warning.get('recommendation', '')}\n"
+
+        prompt = f"""
+Bạn là chuyên gia phân tích rủi ro tín dụng cao cấp của Agribank với 20 năm kinh nghiệm về Survival Analysis và Time-to-Default modeling.
+
+Dựa trên kết quả phân tích sống sót (Survival Analysis) của doanh nghiệp, hãy đưa ra phân tích chuyên sâu và khuyến nghị chiến lược cho Agribank.
+
+**CHỈ SỐ TÀI CHÍNH DOANH NGHIỆP:**
+{indicators_text}
+
+**KẾT QUẢ SURVIVAL ANALYSIS:**
+
+📊 **Median Time-to-Default:** {median_time:.1f} tháng
+   - Doanh nghiệp có 50% xác suất vỡ nợ trong vòng {median_time:.1f} tháng tới
+
+📈 **Xác suất Sống sót & Vỡ nợ theo Thời gian:**
+{survival_text}
+
+🎯 **Phân loại Rủi ro:** {risk_level}
+   - {risk_description}
+
+🔬 **Top 5 Yếu tố Rủi ro Quan trọng (Hazard Ratios):**
+{hazard_text}
+
+**GHI CHÚ VỀ HAZARD RATIO:**
+- HR > 1: Chỉ số này làm TĂNG nguy cơ vỡ nợ (càng cao càng nguy hiểm)
+- HR < 1: Chỉ số này làm GIẢM nguy cơ vỡ nợ (bảo vệ doanh nghiệp)
+- HR = 1: Chỉ số không ảnh hưởng đến rủi ro
+{warning_text}
+
+**YÊU CẦU PHÂN TÍCH:**
+
+Hãy phân tích theo cấu trúc sau (bằng tiếng Việt chuyên nghiệp, 500-700 từ):
+
+### 1. ĐÁNH GIÁ TỔNG QUAN VỀ KHẢ NĂNG SỐNG SÓT
+- Đánh giá median time-to-default {median_time:.1f} tháng có ý nghĩa gì?
+- So sánh với các mốc thời gian quan trọng: 6 tháng, 12 tháng, 24 tháng
+- Xác suất vỡ nợ tại các thời điểm quan trọng cao hay thấp?
+- Nhận xét về xu hướng survival curve (giảm nhanh hay giảm chậm?)
+
+### 2. PHÂN TÍCH CÁC YẾU TỐ RỦI RO QUAN TRỌNG
+- Phân tích TOP 5 chỉ số có Hazard Ratio cao nhất
+- Chỉ số nào đang "kéo doanh nghiệp xuống vực thẳm" (HR >> 1)?
+- Chỉ số nào đang "bảo vệ doanh nghiệp" (HR << 1)?
+- Giải thích cơ chế tác động của các chỉ số này
+
+### 3. SO SÁNH VỚI CHUẨN MỰC NGÀNH
+- Median time {median_time:.1f} tháng là ngắn hay dài so với doanh nghiệp cùng ngành?
+- Xác suất sống sót tại 12 tháng là {survival_probs.get(12, 0) * 100:.1f}% - đánh giá cao hay thấp?
+- Doanh nghiệp này thuộc nhóm nào: Xuất sắc / Khỏe mạnh / Trung bình / Yếu / Nguy cấp?
+
+### 4. KHUYẾN NGHỊ CHO AGRIBANK (QUAN TRỌNG)
+
+**A. Quyết định Tín dụng:**
+- ✅ **CÓ NÊN CHO VAY?** Giải thích rõ lý do
+- 💰 **Hạn mức tối đa:** Đề xuất cụ thể (VD: 5 tỷ, 10 tỷ, 50 tỷ...)
+- 📅 **Thời hạn vay:** Ngắn hạn (<6 tháng) / Trung hạn (6-12 tháng) / Dài hạn (>12 tháng)?
+- 🏦 **Lãi suất:** Thấp hơn thị trường / Bằng thị trường / Cao hơn thị trường (risk premium)?
+- 🏠 **Tài sản đảm bảo:** Có yêu cầu không? Tỷ lệ bao nhiêu (70%, 100%, 120%...)?
+
+**B. Biện pháp Quản lý Rủi ro:**
+- 📋 **Covenant (Điều khoản ràng buộc):** Chỉ số nào cần theo dõi?
+- 🔍 **Giám sát:** Định kỳ hàng tháng / quý / năm?
+- 🚨 **Early Warning Signals:** Dấu hiệu cảnh báo sớm nào cần chú ý?
+- 🛡️ **Biện pháp dự phòng:** Chuẩn bị gì nếu doanh nghiệp xấu đi?
+
+### 5. KHUYẾN NGHỊ CHO DOANH NGHIỆP
+- Chỉ số nào cần CẢI THIỆN KHẨN CẤP để kéo dài thời gian sống sót?
+- Đề xuất lộ trình hành động cụ thể (3-6 tháng tới)
+- Chiến lược tài chính nên điều chỉnh như thế nào?
+
+### 6. KẾT LUẬN & RATING ĐỀ XUẤT
+- Tóm tắt ngắn gọn (2-3 câu)
+- Đề xuất xếp hạng tín dụng: AAA / AA / A / BBB / BB / B / CCC / CC / C / D
+- Quyết định cuối cùng: ✅ PHÊ DUYỆT / ⚠️ PHÊ DUYỆT CÓ ĐIỀU KIỆN / ❌ TỪ CHỐI
+
+**QUAN TRỌNG:** Phân tích phải cụ thể, dựa trên số liệu thực tế, tập trung vào insight và hành động cụ thể, KHÔNG chung chung.
+"""
+
+        try:
+            # Gọi Gemini API
+            response = self.model.generate_content(prompt)
+            result = response.text
+            return result
+
+        except Exception as e:
+            return f"❌ Lỗi khi phân tích survival results: {str(e)}"
+
 
 # Khởi tạo instance global
 gemini_analyzer = None
