@@ -11,7 +11,7 @@ load_dotenv()  # Tải các biến môi trường từ file .env
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import pandas as pd
@@ -2010,7 +2010,8 @@ async def train_survival_models(file: UploadFile = File(...)):
 
             print("✅ [SURVIVAL TRAINING] Response đã sẵn sàng để gửi về frontend\n")
 
-            return json_response
+            # Sử dụng JSONResponse explicitly để đảm bảo serialize chính xác
+            return JSONResponse(content=json_response)
 
         finally:
             # Xóa file tạm
@@ -2031,6 +2032,302 @@ async def train_survival_models(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=500,
             detail=f"Lỗi khi huấn luyện survival models: {str(e)}"
+        )
+
+
+@app.post("/train-cox")
+async def train_cox_model(file: UploadFile = File(...)):
+    """
+    Huấn luyện riêng Cox Proportional Hazards Model
+    (Endpoint đơn giản hơn, chỉ train 1 model để tránh lỗi network)
+
+    Input: CSV/Excel file với cột:
+    - X_1 đến X_14: 14 chỉ số tài chính
+    - months_to_default: Thời gian đến khi vỡ nợ (tháng)
+    - event: 1 = vỡ nợ, 0 = censored (chưa vỡ nợ)
+
+    Returns:
+    - Cox Model training metrics (C-index, log-likelihood)
+    - Kaplan-Meier baseline survival function
+    - Hazard ratios
+    """
+    print("\n" + "="*80)
+    print("🚀 [COX TRAINING] Bắt đầu huấn luyện Cox PH model...")
+    print("="*80)
+
+    tmp_file_path = None
+
+    try:
+        # 1. LƯU FILE TẠM THỜI
+        print("📁 [COX TRAINING] Đang lưu file tạm thời...")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_file:
+            tmp_file.write(await file.read())
+            tmp_file_path = tmp_file.name
+        print(f"✅ [COX TRAINING] Đã lưu file: {tmp_file_path}")
+
+        try:
+            # 2. ĐỌC DỮ LIỆU
+            print("📊 [COX TRAINING] Đang đọc dữ liệu...")
+            if file.filename.endswith('.csv'):
+                df = pd.read_csv(tmp_file_path)
+            elif file.filename.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(tmp_file_path)
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="File phải là định dạng CSV hoặc Excel (.xlsx, .xls)"
+                )
+
+            print(f"✅ [COX TRAINING] Đã đọc {len(df)} dòng dữ liệu")
+
+            # 3. KIỂM TRA CỘT CẦN THIẾT
+            print("🔍 [COX TRAINING] Đang kiểm tra các cột dữ liệu...")
+            required_features = [f'X_{i}' for i in range(1, 15)]
+            required_cols = required_features + ['months_to_default']
+
+            missing_cols = [col for col in required_cols if col not in df.columns]
+            if missing_cols:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Thiếu các cột: {', '.join(missing_cols)}"
+                )
+
+            # Nếu không có cột 'event', tự động tạo
+            if 'event' not in df.columns:
+                df['event'] = 1
+                print("⚠️  [COX TRAINING] Không tìm thấy cột 'event', tạo tự động (all events = 1)")
+
+            print(f"✅ [COX TRAINING] Validation hoàn tất. Events: {int(df['event'].sum())}, Censored: {int((1-df['event']).sum())}")
+
+            # 4. HUẤN LUYỆN COX MODEL
+            print("🔄 [COX TRAINING] Đang huấn luyện Cox Proportional Hazards Model...")
+            cox_result = survival_system.train_cox_model(
+                df,
+                duration_col='months_to_default',
+                event_col='event'
+            )
+            print(f"✅ [COX TRAINING] Hoàn thành! C-index: {cox_result['c_index']:.4f}")
+
+            # 5. TÍNH KAPLAN-MEIER BASELINE
+            km_result = None
+            try:
+                print("📈 [COX TRAINING] Đang tính Kaplan-Meier baseline...")
+                km_result = survival_system.calculate_kaplan_meier(
+                    df,
+                    duration_col='months_to_default',
+                    event_col='event'
+                )
+
+                # Downsample KM data
+                if km_result and 'timeline' in km_result:
+                    original_points = len(km_result.get('timeline', []))
+                    km_result = downsample_kaplan_meier(km_result, max_points=100)
+                    print(f"✅ [COX TRAINING] Kaplan-Meier baseline đã tính xong ({original_points} → {len(km_result.get('timeline', []))} điểm)")
+            except Exception as e:
+                print(f"⚠️  [COX TRAINING] Không thể tính Kaplan-Meier: {str(e)}")
+                km_result = {"error": str(e)}
+
+            # 6. LẤY HAZARD RATIOS
+            hazard_ratios = None
+            try:
+                print("📊 [COX TRAINING] Đang tính hazard ratios...")
+                hazard_ratios = survival_system.get_hazard_ratios(top_k=14)
+                print(f"✅ [COX TRAINING] Đã tính {len(hazard_ratios)} hazard ratios")
+            except Exception as e:
+                print(f"⚠️  [COX TRAINING] Không thể tính hazard ratios: {str(e)}")
+                hazard_ratios = []
+
+            # 7. LƯU MODEL
+            try:
+                print("💾 [COX TRAINING] Đang lưu model...")
+                survival_system.save_models('survival_models.pkl')
+                print("✅ [COX TRAINING] Model đã được lưu vào survival_models.pkl")
+            except Exception as e:
+                print(f"⚠️  [COX TRAINING] Không thể lưu model: {str(e)}")
+
+            # 8. TẠO RESPONSE
+            print("\n" + "="*80)
+            print("🎉 [COX TRAINING] Hoàn thành quá trình training!")
+            print("="*80 + "\n")
+
+            response_data = {
+                "status": "success",
+                "message": "Đã huấn luyện thành công Cox Proportional Hazards Model",
+                "cox_model": cox_result,
+                "kaplan_meier": km_result if km_result else {"status": "not_computed"},
+                "hazard_ratios": hazard_ratios if hazard_ratios else [],
+                "n_samples": len(df),
+                "n_events": int(df['event'].sum()),
+                "n_censored": int((1 - df['event']).sum())
+            }
+
+            # Convert sang JSON serializable
+            print("🔄 [COX TRAINING] Đang serialize response data...")
+            json_response = convert_to_json_serializable(response_data)
+
+            # Log kích thước
+            import json
+            try:
+                response_size = len(json.dumps(json_response))
+                print(f"📦 [COX TRAINING] Response size: {response_size:,} bytes ({response_size/1024:.2f} KB)")
+            except Exception as e:
+                print(f"⚠️  [COX TRAINING] Không thể tính kích thước response: {str(e)}")
+
+            print("✅ [COX TRAINING] Response đã sẵn sàng để gửi về frontend\n")
+
+            return JSONResponse(content=json_response)
+
+        finally:
+            # Xóa file tạm
+            if tmp_file_path and os.path.exists(tmp_file_path):
+                try:
+                    os.unlink(tmp_file_path)
+                    print(f"🗑️  [COX TRAINING] Đã xóa file tạm: {tmp_file_path}")
+                except Exception as e:
+                    print(f"⚠️  [COX TRAINING] Không thể xóa file tạm: {str(e)}")
+
+    except HTTPException as e:
+        print(f"❌ [COX TRAINING] HTTPException: {str(e)}")
+        raise
+    except Exception as e:
+        print(f"❌ [COX TRAINING] Lỗi không mong muốn: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi huấn luyện Cox model: {str(e)}"
+        )
+
+
+@app.post("/train-rsf")
+async def train_rsf_model(file: UploadFile = File(...)):
+    """
+    Huấn luyện riêng Random Survival Forest Model
+    (Endpoint đơn giản hơn, chỉ train 1 model để tránh lỗi network)
+
+    Input: CSV/Excel file với cột:
+    - X_1 đến X_14: 14 chỉ số tài chính
+    - months_to_default: Thời gian đến khi vỡ nợ (tháng)
+    - event: 1 = vỡ nợ, 0 = censored (chưa vỡ nợ)
+
+    Returns:
+    - RSF Model training metrics (C-index)
+    """
+    print("\n" + "="*80)
+    print("🚀 [RSF TRAINING] Bắt đầu huấn luyện Random Survival Forest model...")
+    print("="*80)
+
+    tmp_file_path = None
+
+    try:
+        # 1. LƯU FILE TẠM THỜI
+        print("📁 [RSF TRAINING] Đang lưu file tạm thời...")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp_file:
+            tmp_file.write(await file.read())
+            tmp_file_path = tmp_file.name
+        print(f"✅ [RSF TRAINING] Đã lưu file: {tmp_file_path}")
+
+        try:
+            # 2. ĐỌC DỮ LIỆU
+            print("📊 [RSF TRAINING] Đang đọc dữ liệu...")
+            if file.filename.endswith('.csv'):
+                df = pd.read_csv(tmp_file_path)
+            elif file.filename.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(tmp_file_path)
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="File phải là định dạng CSV hoặc Excel (.xlsx, .xls)"
+                )
+
+            print(f"✅ [RSF TRAINING] Đã đọc {len(df)} dòng dữ liệu")
+
+            # 3. KIỂM TRA CỘT CẦN THIẾT
+            print("🔍 [RSF TRAINING] Đang kiểm tra các cột dữ liệu...")
+            required_features = [f'X_{i}' for i in range(1, 15)]
+            required_cols = required_features + ['months_to_default']
+
+            missing_cols = [col for col in required_cols if col not in df.columns]
+            if missing_cols:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Thiếu các cột: {', '.join(missing_cols)}"
+                )
+
+            # Nếu không có cột 'event', tự động tạo
+            if 'event' not in df.columns:
+                df['event'] = 1
+                print("⚠️  [RSF TRAINING] Không tìm thấy cột 'event', tạo tự động (all events = 1)")
+
+            print(f"✅ [RSF TRAINING] Validation hoàn tất. Events: {int(df['event'].sum())}, Censored: {int((1-df['event']).sum())}")
+
+            # 4. HUẤN LUYỆN RSF MODEL
+            print("🔄 [RSF TRAINING] Đang huấn luyện Random Survival Forest Model...")
+            rsf_result = survival_system.train_random_survival_forest(
+                df,
+                duration_col='months_to_default',
+                event_col='event',
+                n_estimators=100
+            )
+            print(f"✅ [RSF TRAINING] Hoàn thành! C-index: {rsf_result['c_index']:.4f}")
+
+            # 5. LƯU MODEL
+            try:
+                print("💾 [RSF TRAINING] Đang lưu model...")
+                survival_system.save_models('survival_models.pkl')
+                print("✅ [RSF TRAINING] Model đã được lưu vào survival_models.pkl")
+            except Exception as e:
+                print(f"⚠️  [RSF TRAINING] Không thể lưu model: {str(e)}")
+
+            # 6. TẠO RESPONSE
+            print("\n" + "="*80)
+            print("🎉 [RSF TRAINING] Hoàn thành quá trình training!")
+            print("="*80 + "\n")
+
+            response_data = {
+                "status": "success",
+                "message": "Đã huấn luyện thành công Random Survival Forest Model",
+                "rsf_model": rsf_result,
+                "n_samples": len(df),
+                "n_events": int(df['event'].sum()),
+                "n_censored": int((1 - df['event']).sum())
+            }
+
+            # Convert sang JSON serializable
+            print("🔄 [RSF TRAINING] Đang serialize response data...")
+            json_response = convert_to_json_serializable(response_data)
+
+            # Log kích thước
+            import json
+            try:
+                response_size = len(json.dumps(json_response))
+                print(f"📦 [RSF TRAINING] Response size: {response_size:,} bytes ({response_size/1024:.2f} KB)")
+            except Exception as e:
+                print(f"⚠️  [RSF TRAINING] Không thể tính kích thước response: {str(e)}")
+
+            print("✅ [RSF TRAINING] Response đã sẵn sàng để gửi về frontend\n")
+
+            return JSONResponse(content=json_response)
+
+        finally:
+            # Xóa file tạm
+            if tmp_file_path and os.path.exists(tmp_file_path):
+                try:
+                    os.unlink(tmp_file_path)
+                    print(f"🗑️  [RSF TRAINING] Đã xóa file tạm: {tmp_file_path}")
+                except Exception as e:
+                    print(f"⚠️  [RSF TRAINING] Không thể xóa file tạm: {str(e)}")
+
+    except HTTPException as e:
+        print(f"❌ [RSF TRAINING] HTTPException: {str(e)}")
+        raise
+    except Exception as e:
+        print(f"❌ [RSF TRAINING] Lỗi không mong muốn: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi huấn luyện RSF model: {str(e)}"
         )
 
 
