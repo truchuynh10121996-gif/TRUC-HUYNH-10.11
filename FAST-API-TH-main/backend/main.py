@@ -83,6 +83,54 @@ def convert_to_json_serializable(obj):
         return obj
 
 
+def downsample_kaplan_meier(km_data: Dict[str, Any], max_points: int = 100) -> Dict[str, Any]:
+    """
+    Downsample Kaplan-Meier data để giảm kích thước response
+    Giữ lại max_points điểm quan trọng nhất
+
+    Args:
+        km_data: Dict chứa timeline và survival_probabilities
+        max_points: Số điểm tối đa muốn giữ lại
+
+    Returns:
+        Dict với downsampled data
+    """
+    if not km_data or 'timeline' not in km_data or 'survival_probabilities' not in km_data:
+        return km_data
+
+    timeline = km_data['timeline']
+    survival_probs = km_data['survival_probabilities']
+
+    # Nếu số điểm ít hơn max_points, không cần downsample
+    if len(timeline) <= max_points:
+        return km_data
+
+    # Downsample: lấy mỗi n điểm
+    step = len(timeline) // max_points
+    if step < 1:
+        step = 1
+
+    # Luôn giữ điểm đầu và điểm cuối
+    indices = list(range(0, len(timeline), step))
+    if len(timeline) - 1 not in indices:
+        indices.append(len(timeline) - 1)
+
+    downsampled_timeline = [timeline[i] for i in indices]
+    downsampled_probs = [survival_probs[i] for i in indices]
+
+    print(f"🔽 [DOWNSAMPLE] Kaplan-Meier: {len(timeline)} điểm → {len(downsampled_timeline)} điểm")
+
+    return {
+        'timeline': downsampled_timeline,
+        'survival_probabilities': downsampled_probs,
+        'median_survival_time': km_data.get('median_survival_time'),
+        'event_count': km_data.get('event_count'),
+        'censored_count': km_data.get('censored_count'),
+        'original_points': len(timeline),  # Thông tin về số điểm gốc
+        'downsampled': True
+    }
+
+
 # ================================================================================================
 # PYDANTIC MODELS
 # ================================================================================================
@@ -1775,7 +1823,7 @@ async def check_anomaly(
 async def train_survival_models(file: UploadFile = File(...)):
     """
     Huấn luyện Survival Analysis Models (Cox PH + Random Survival Forest)
-    Chạy song song 2 mô hình để tối ưu hiệu suất
+    Chạy tuần tự 2 mô hình để đảm bảo ổn định
 
     Input: CSV/Excel file với cột:
     - X_1 đến X_14: 14 chỉ số tài chính
@@ -1784,7 +1832,8 @@ async def train_survival_models(file: UploadFile = File(...)):
 
     Returns:
     - Training metrics (C-index, log-likelihood)
-    - Kaplan-Meier baseline survival function
+    - Kaplan-Meier baseline survival function (downsampled để giảm kích thước)
+    - Hazard ratios
     """
     print("\n" + "="*80)
     print("🚀 [SURVIVAL TRAINING] Bắt đầu huấn luyện Cox PH & RSF models...")
@@ -1889,7 +1938,14 @@ async def train_survival_models(file: UploadFile = File(...)):
                         duration_col='months_to_default',
                         event_col='event'
                     )
-                    print("✅ [SURVIVAL TRAINING] Kaplan-Meier baseline đã tính xong")
+
+                    # Downsample KM data để giảm kích thước response
+                    if km_result and 'timeline' in km_result:
+                        original_points = len(km_result.get('timeline', []))
+                        km_result = downsample_kaplan_meier(km_result, max_points=100)
+                        print(f"✅ [SURVIVAL TRAINING] Kaplan-Meier baseline đã tính xong ({original_points} → {len(km_result.get('timeline', []))} điểm)")
+                    else:
+                        print("✅ [SURVIVAL TRAINING] Kaplan-Meier baseline đã tính xong")
                 except Exception as e:
                     print(f"⚠️  [SURVIVAL TRAINING] Không thể tính Kaplan-Meier: {str(e)}")
                     km_result = {"error": str(e)}
@@ -1941,7 +1997,20 @@ async def train_survival_models(file: UploadFile = File(...)):
             }
 
             # Convert tất cả numpy/pandas types sang Python native types
-            return convert_to_json_serializable(response_data)
+            print("🔄 [SURVIVAL TRAINING] Đang serialize response data...")
+            json_response = convert_to_json_serializable(response_data)
+
+            # Log kích thước response (ước tính)
+            import json
+            try:
+                response_size = len(json.dumps(json_response))
+                print(f"📦 [SURVIVAL TRAINING] Response size: {response_size:,} bytes ({response_size/1024:.2f} KB)")
+            except Exception as e:
+                print(f"⚠️  [SURVIVAL TRAINING] Không thể tính kích thước response: {str(e)}")
+
+            print("✅ [SURVIVAL TRAINING] Response đã sẵn sàng để gửi về frontend\n")
+
+            return json_response
 
         finally:
             # Xóa file tạm
