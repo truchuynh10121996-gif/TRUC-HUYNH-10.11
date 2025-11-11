@@ -4699,7 +4699,7 @@ export default {
           headers: {
             'Content-Type': 'multipart/form-data'
           },
-          timeout: 300000  // 5 phút (300000ms) để model có đủ thời gian train
+          timeout: 600000  // 10 phút (600000ms) - 2 models chạy tuần tự nên cần thời gian dài hơn
         })
 
         if (response.data.status === 'success') {
