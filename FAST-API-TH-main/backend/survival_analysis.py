@@ -256,14 +256,32 @@ class SurvivalAnalysisSystem:
             # Dự báo survival function
             surv_func = self.cox_model.predict_survival_function(X_new)
 
+            # Lấy survival curve của sample đầu tiên (cột đầu tiên, không phải row đầu tiên)
+            surv_curve = surv_func.iloc[:, 0]  # Series với index = timeline
+
             # Nếu không có timeline, dùng timeline từ model
             if timeline is None:
-                timeline = surv_func.index.tolist()
-
-            # Lấy survival probabilities tại các thời điểm
-            survival_probs = [float(surv_func.iloc[0].loc[t]) if t in surv_func.index
-                            else float(surv_func.iloc[0].iloc[np.searchsorted(surv_func.index, t)])
-                            for t in timeline]
+                timeline = surv_curve.index.tolist()
+                survival_probs = [float(p) for p in surv_curve.values.tolist()]
+            else:
+                # Lấy survival probabilities tại các thời điểm cụ thể
+                survival_probs = []
+                for t in timeline:
+                    if t in surv_curve.index:
+                        survival_probs.append(float(surv_curve.loc[t]))
+                    else:
+                        # Interpolate nếu thời điểm không có trong index
+                        idx = np.searchsorted(surv_curve.index, t)
+                        if idx == 0:
+                            survival_probs.append(float(surv_curve.iloc[0]))
+                        elif idx >= len(surv_curve):
+                            survival_probs.append(float(surv_curve.iloc[-1]))
+                        else:
+                            # Linear interpolation
+                            t1, p1 = surv_curve.index[idx-1], surv_curve.iloc[idx-1]
+                            t2, p2 = surv_curve.index[idx], surv_curve.iloc[idx]
+                            prob = p1 + (t - t1) * (p2 - p1) / (t2 - t1)
+                            survival_probs.append(float(prob))
 
         elif model_type == 'rsf':
             if self.rsf_model is None:
@@ -272,13 +290,31 @@ class SurvivalAnalysisSystem:
             # Dự báo survival function
             surv_funcs = self.rsf_model.predict_survival_function(X_new, return_array=True)
 
+            # Lấy survival probabilities của sample đầu tiên
+            surv_probs_array = surv_funcs[0]  # Array survival probs của sample đầu tiên
+            unique_times = self.rsf_model.unique_times_
+
             # Timeline từ RSF model
             if timeline is None:
-                timeline = self.rsf_model.unique_times_.tolist()
-
-            # Lấy survival probabilities
-            survival_probs = [float(surv_funcs[0][np.searchsorted(self.rsf_model.unique_times_, t)])
-                            for t in timeline]
+                timeline = unique_times.tolist()
+                survival_probs = [float(p) for p in surv_probs_array.tolist()]
+            else:
+                # Lấy survival probabilities tại các thời điểm cụ thể
+                survival_probs = []
+                for t in timeline:
+                    idx = np.searchsorted(unique_times, t)
+                    if idx == 0:
+                        survival_probs.append(float(surv_probs_array[0]))
+                    elif idx >= len(unique_times):
+                        survival_probs.append(float(surv_probs_array[-1]))
+                    elif t == unique_times[idx]:
+                        survival_probs.append(float(surv_probs_array[idx]))
+                    else:
+                        # Linear interpolation
+                        t1, p1 = unique_times[idx-1], surv_probs_array[idx-1]
+                        t2, p2 = unique_times[idx], surv_probs_array[idx]
+                        prob = p1 + (t - t1) * (p2 - p1) / (t2 - t1)
+                        survival_probs.append(float(prob))
         else:
             raise ValueError(f"Unknown model_type: {model_type}. Use 'cox' or 'rsf'.")
 
@@ -306,19 +342,29 @@ class SurvivalAnalysisSystem:
         timeline = result['timeline']
         survival_probs = result['survival_probabilities']
 
+        # Kiểm tra timeline và survival_probs có dữ liệu
+        if not timeline or not survival_probs:
+            raise ValueError("Timeline hoặc survival probabilities rỗng")
+
         # Tìm thời điểm mà survival probability = 0.5
         for i, prob in enumerate(survival_probs):
             if prob <= 0.5:
                 if i == 0:
-                    return timeline[0]
+                    return float(timeline[0])
                 else:
                     # Linear interpolation
                     t1, p1 = timeline[i-1], survival_probs[i-1]
                     t2, p2 = timeline[i], survival_probs[i]
-                    median_time = t1 + (0.5 - p1) * (t2 - t1) / (p2 - p1)
+
+                    # Tránh chia cho 0
+                    if abs(p2 - p1) < 1e-10:
+                        median_time = t1
+                    else:
+                        median_time = t1 + (0.5 - p1) * (t2 - t1) / (p2 - p1)
                     return float(median_time)
 
         # Nếu survival probability không bao giờ xuống dưới 0.5
+        # Doanh nghiệp có rủi ro thấp, median time rất lớn
         return float(timeline[-1])  # Return max time
 
     def get_hazard_ratios(self, top_k: int = 5) -> List[Dict[str, Any]]:
