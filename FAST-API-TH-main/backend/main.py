@@ -18,7 +18,6 @@ import pandas as pd
 import os
 import tempfile
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from model import credit_model
 from gemini_api import get_gemini_analyzer
 from excel_processor import excel_processor
@@ -1797,67 +1796,47 @@ async def train_survival_models(file: UploadFile = File(...)):
 
             print(f"✅ [SURVIVAL TRAINING] Validation hoàn tất. Events: {int(df['event'].sum())}, Censored: {int((1-df['event']).sum())}")
 
-            # 4. ĐỊNH NGHĨA HÀM HUẤN LUYỆN RIÊNG BIỆT (ĐỂ CHẠY SONG SONG)
-            def train_cox_wrapper():
-                """Wrapper function để train Cox model với error handling"""
-                try:
-                    print("🔄 [COX MODEL] Bắt đầu huấn luyện Cox Proportional Hazards Model...")
-                    cox_result = survival_system.train_cox_model(
-                        df.copy(),  # Truyền copy để tránh race condition
-                        duration_col='months_to_default',
-                        event_col='event'
-                    )
-                    print(f"✅ [COX MODEL] Hoàn thành! C-index: {cox_result['c_index']:.4f}")
-                    return {"success": True, "data": cox_result}
-                except Exception as e:
-                    print(f"❌ [COX MODEL] Lỗi: {str(e)}")
-                    return {"success": False, "error": str(e), "model": "Cox PH"}
-
-            def train_rsf_wrapper():
-                """Wrapper function để train RSF model với error handling"""
-                try:
-                    print("🔄 [RSF MODEL] Bắt đầu huấn luyện Random Survival Forest Model...")
-                    rsf_result = survival_system.train_random_survival_forest(
-                        df.copy(),  # Truyền copy để tránh race condition
-                        duration_col='months_to_default',
-                        event_col='event',
-                        n_estimators=100
-                    )
-                    print(f"✅ [RSF MODEL] Hoàn thành! C-index: {rsf_result['c_index']:.4f}")
-                    return {"success": True, "data": rsf_result}
-                except Exception as e:
-                    print(f"❌ [RSF MODEL] Lỗi: {str(e)}")
-                    return {"success": False, "error": str(e), "model": "RSF"}
-
-            # 5. CHẠY SONG SONG 2 MODELS VỚI THREADPOOLEXECUTOR
-            print("\n⚡ [SURVIVAL TRAINING] Đang chạy song song Cox PH và RSF models...")
+            # 4. HUẤN LUYỆN TUẦN TỰ (SEQUENTIAL) - ĐƠN GIẢN VÀ ỔN ĐỊNH HƠN
+            print("\n⚡ [SURVIVAL TRAINING] Đang huấn luyện lần lượt Cox PH và RSF models...")
             cox_result = None
             rsf_result = None
             training_errors = []
 
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                # Submit cả 2 tasks
-                future_cox = executor.submit(train_cox_wrapper)
-                future_rsf = executor.submit(train_rsf_wrapper)
+            # 4.1. TRAIN COX PH MODEL TRƯỚC
+            try:
+                print("🔄 [COX MODEL - 1/2] Bắt đầu huấn luyện Cox Proportional Hazards Model...")
+                cox_result = survival_system.train_cox_model(
+                    df,
+                    duration_col='months_to_default',
+                    event_col='event'
+                )
+                print(f"✅ [COX MODEL - 1/2] Hoàn thành! C-index: {cox_result['c_index']:.4f}")
+            except Exception as e:
+                print(f"❌ [COX MODEL - 1/2] Lỗi: {str(e)}")
+                training_errors.append({
+                    "model": "Cox PH",
+                    "error": str(e)
+                })
 
-                # Thu thập kết quả
-                for future in as_completed([future_cox, future_rsf]):
-                    result = future.result()
-                    if result["success"]:
-                        # Xác định model nào đã hoàn thành
-                        if "model_type" in result["data"]:
-                            if "Cox" in result["data"]["model_type"]:
-                                cox_result = result["data"]
-                            elif "Forest" in result["data"]["model_type"]:
-                                rsf_result = result["data"]
-                    else:
-                        training_errors.append({
-                            "model": result.get("model", "Unknown"),
-                            "error": result.get("error", "Unknown error")
-                        })
+            # 4.2. TRAIN RSF MODEL SAU
+            try:
+                print("🔄 [RSF MODEL - 2/2] Bắt đầu huấn luyện Random Survival Forest Model...")
+                rsf_result = survival_system.train_random_survival_forest(
+                    df,
+                    duration_col='months_to_default',
+                    event_col='event',
+                    n_estimators=100
+                )
+                print(f"✅ [RSF MODEL - 2/2] Hoàn thành! C-index: {rsf_result['c_index']:.4f}")
+            except Exception as e:
+                print(f"❌ [RSF MODEL - 2/2] Lỗi: {str(e)}")
+                training_errors.append({
+                    "model": "RSF",
+                    "error": str(e)
+                })
 
             print("\n" + "="*80)
-            print("📊 [SURVIVAL TRAINING] Kết quả huấn luyện song song:")
+            print("📊 [SURVIVAL TRAINING] Kết quả huấn luyện tuần tự:")
             print(f"   - Cox PH: {'✅ Thành công' if cox_result else '❌ Thất bại'}")
             print(f"   - RSF: {'✅ Thành công' if rsf_result else '❌ Thất bại'}")
             print("="*80)
