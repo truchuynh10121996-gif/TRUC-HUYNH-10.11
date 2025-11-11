@@ -62,8 +62,10 @@ app.add_middleware(
 def convert_to_json_serializable(obj):
     """
     Chuyển đổi numpy/pandas types sang Python native types để JSON serialization
+    Xử lý các giá trị float đặc biệt (inf, -inf, nan) không hợp lệ trong JSON
     """
     import numpy as np
+    import math
 
     if isinstance(obj, dict):
         return {key: convert_to_json_serializable(value) for key, value in obj.items()}
@@ -72,7 +74,17 @@ def convert_to_json_serializable(obj):
     elif isinstance(obj, (np.integer, np.int64, np.int32, np.int16, np.int8)):
         return int(obj)
     elif isinstance(obj, (np.floating, np.float64, np.float32, np.float16)):
-        return float(obj)
+        # Convert numpy float to Python float
+        val = float(obj)
+        # Kiểm tra và xử lý các giá trị đặc biệt không hợp lệ trong JSON
+        if math.isnan(val) or math.isinf(val):
+            return None  # Hoặc có thể return 0, tùy vào yêu cầu
+        return val
+    elif isinstance(obj, float):
+        # Xử lý Python float (không phải numpy)
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
     elif isinstance(obj, np.ndarray):
         return convert_to_json_serializable(obj.tolist())
     elif isinstance(obj, (np.bool_, bool)):
