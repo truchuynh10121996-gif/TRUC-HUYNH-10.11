@@ -405,6 +405,143 @@ class SurvivalAnalysisSystem:
 
         return results[:top_k]
 
+    def get_individual_risk_contributions(self, indicators: Dict[str, float],
+                                         top_k: int = 5) -> List[Dict[str, Any]]:
+        """
+        Tính risk contribution của TỪNG CHỈ SỐ cho DOANH NGHIỆP CỤ THỂ này
+        (KHÁC với get_hazard_ratios - trả về model-level metrics giống nhau cho mọi DN)
+
+        Args:
+            indicators: Dict với 14 chỉ số tài chính của doanh nghiệp CỤ THỂ
+            top_k: Số lượng chỉ số muốn lấy
+
+        Returns:
+            List các dict với feature name, contribution, và diễn giải CỤ THỂ cho DN này
+
+        Ví dụ:
+            - DN A (ROA = 10%): X_3 contribution = -2.5 (giảm rủi ro)
+            - DN B (ROA = -5%): X_3 contribution = +1.8 (tăng rủi ro)
+        """
+        if self.cox_model is None:
+            raise ValueError("Cox model not trained. Call train_cox_model() first.")
+
+        # Tạo DataFrame cho doanh nghiệp này
+        company_data = pd.DataFrame([indicators])
+
+        # Đảm bảo có đủ 14 chỉ số
+        for feature in self.feature_names:
+            if feature not in company_data.columns:
+                company_data[feature] = 0
+
+        # Sắp xếp theo thứ tự features
+        company_data = company_data[self.feature_names]
+
+        # Xử lý missing values
+        company_data = company_data.fillna(0)
+
+        # Lấy coefficients từ Cox model
+        coefficients = self.cox_model.params_
+        p_values = self.cox_model.summary['p']
+
+        # Tính training data statistics (mean) để so sánh
+        if self.training_data is not None:
+            training_means = self.training_data[self.feature_names].mean()
+            training_stds = self.training_data[self.feature_names].std()
+        else:
+            training_means = pd.Series(0, index=self.feature_names)
+            training_stds = pd.Series(1, index=self.feature_names)
+
+        # Tính risk contributions cho DOANH NGHIỆP NÀY
+        results = []
+        total_log_hazard = 0
+
+        for feature in self.feature_names:
+            if feature in coefficients.index:
+                coef = float(coefficients[feature])
+                company_value = float(company_data[feature].iloc[0])
+                mean_value = float(training_means[feature])
+                std_value = float(training_stds[feature])
+                p_val = float(p_values[feature])
+
+                # Risk contribution = coef × (value - mean)
+                # Positive contribution = TĂNG rủi ro
+                # Negative contribution = GIẢM rủi ro
+                contribution = coef * (company_value - mean_value)
+                total_log_hazard += contribution
+
+                # Standardized contribution (so với độ lệch chuẩn)
+                if std_value > 0:
+                    z_score = (company_value - mean_value) / std_value
+                    contribution_std = coef * z_score
+                else:
+                    z_score = 0
+                    contribution_std = 0
+
+                # Diễn giải
+                if abs(contribution) < 0.01:
+                    interpretation = "⚪ Không ảnh hưởng (gần trung bình)"
+                elif contribution > 0:
+                    # TĂNG rủi ro
+                    if contribution > 1.0:
+                        interpretation = f"🔴 TĂNG rủi ro MẠNH (+{contribution:.2f})"
+                    elif contribution > 0.5:
+                        interpretation = f"🟠 TĂNG rủi ro TRUNG BÌNH (+{contribution:.2f})"
+                    else:
+                        interpretation = f"🟡 Tăng rủi ro nhẹ (+{contribution:.2f})"
+                else:
+                    # GIẢM rủi ro
+                    if contribution < -1.0:
+                        interpretation = f"🟢 GIẢM rủi ro MẠNH ({contribution:.2f})"
+                    elif contribution < -0.5:
+                        interpretation = f"🟢 GIẢM rủi ro TRUNG BÌNH ({contribution:.2f})"
+                    else:
+                        interpretation = f"🟢 Giảm rủi ro nhẹ ({contribution:.2f})"
+
+                # So sánh với trung bình
+                if company_value > mean_value:
+                    comparison = f"CAO hơn TB {abs(company_value - mean_value):.3f}"
+                elif company_value < mean_value:
+                    comparison = f"THẤP hơn TB {abs(company_value - mean_value):.3f}"
+                else:
+                    comparison = "BẰNG trung bình"
+
+                results.append({
+                    'feature_code': feature,
+                    'feature_name': self.feature_name_mapping[feature],
+
+                    # Giá trị của DOANH NGHIỆP NÀY
+                    'company_value': company_value,
+                    'mean_value': mean_value,
+                    'z_score': z_score,
+                    'comparison': comparison,
+
+                    # Risk contribution CỤ THỂ
+                    'risk_contribution': contribution,
+                    'risk_contribution_std': contribution_std,
+                    'interpretation': interpretation,
+
+                    # Model info (để tham khảo)
+                    'coefficient': coef,
+                    'p_value': p_val,
+                    'is_significant': p_val < 0.05
+                })
+
+        # Sắp xếp theo absolute contribution (chỉ số ảnh hưởng mạnh nhất lên đầu)
+        results.sort(key=lambda x: abs(x['risk_contribution']), reverse=True)
+
+        # Thêm thông tin tổng hợp
+        top_results = results[:top_k]
+
+        # Tính % contribution so với tổng
+        total_abs_contribution = sum(abs(r['risk_contribution']) for r in results)
+        for r in top_results:
+            if total_abs_contribution > 0:
+                r['contribution_pct'] = abs(r['risk_contribution']) / total_abs_contribution * 100
+            else:
+                r['contribution_pct'] = 0
+
+        return top_results
+
     def get_survival_probabilities_at_times(self, indicators: Dict[str, float],
                                            times: List[float] = [6, 12, 24],
                                            model_type: str = 'cox') -> Dict[float, float]:

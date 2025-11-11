@@ -429,22 +429,68 @@ class ReportGenerator:
             self.doc.add_paragraph()
 
             # ================================
-            # IV. HAZARD RATIOS - YẾU TỐ RỦI RO
+            # IV. YẾU TỐ RỦI RO - RISK CONTRIBUTIONS hoặc HAZARD RATIOS
             # ================================
-            self.add_section_title('IV. HAZARD RATIOS - YẾU TỐ RỦI RO QUAN TRỌNG')
 
-            # Giải thích Hazard Ratio
-            explanation = self.doc.add_paragraph(
-                'Hazard Ratio (HR) đo lường mức độ ảnh hưởng của từng chỉ số tài chính đến rủi ro vỡ nợ:'
-            )
-            explanation.add_run('\n• HR > 1: Chỉ số này làm TĂNG nguy cơ vỡ nợ (càng cao càng nguy hiểm)')
-            explanation.add_run('\n• HR < 1: Chỉ số này làm GIẢM nguy cơ vỡ nợ (bảo vệ doanh nghiệp)')
-            explanation.add_run('\n• HR = 1: Chỉ số không ảnh hưởng đến rủi ro')
+            # Ưu tiên hiển thị risk_contributions (individual) nếu có
+            risk_contributions = data.get('risk_contributions', [])
 
-            self.doc.add_paragraph()
+            if risk_contributions:
+                # Hiển thị INDIVIDUAL RISK CONTRIBUTIONS (cụ thể cho doanh nghiệp này)
+                self.add_section_title('IV. YẾU TỐ RỦI RO - ĐÓNG GÓP VÀO RỦI RO CỦA DOANH NGHIỆP NÀY')
 
-            # Tạo bảng hazard ratios
-            if hazard_ratios:
+                # Giải thích
+                explanation = self.doc.add_paragraph(
+                    'Risk Contribution cho biết mỗi chỉ số tài chính đóng góp như thế nào vào rủi ro CỤ THỂ của doanh nghiệp này:'
+                )
+                explanation.add_run('\n• (+): Chỉ số này TĂNG rủi ro vỡ nợ cho doanh nghiệp')
+                explanation.add_run('\n• (-): Chỉ số này GIẢM rủi ro vỡ nợ cho doanh nghiệp')
+                explanation.add_run('\n• Giá trị càng lớn (dương hoặc âm) = Ảnh hưởng càng mạnh')
+
+                self.doc.add_paragraph()
+
+                # Tạo bảng risk contributions
+                rc_table = self.doc.add_table(rows=len(risk_contributions) + 1, cols=5)
+                rc_table.style = 'Light Grid Accent 1'
+
+                # Header
+                header_cells = rc_table.rows[0].cells
+                header_cells[0].text = 'Chỉ số'
+                header_cells[1].text = 'Giá trị DN'
+                header_cells[2].text = 'So với TB'
+                header_cells[3].text = 'Đóng góp'
+                header_cells[4].text = 'Diễn giải'
+
+                # Dữ liệu
+                for i, rc in enumerate(risk_contributions, 1):
+                    feature_name = rc.get('feature_name', 'N/A')
+                    company_value = rc.get('company_value', 0)
+                    comparison = rc.get('comparison', 'N/A')
+                    contribution = rc.get('risk_contribution', 0)
+                    interpretation = rc.get('interpretation', 'N/A')
+
+                    row_cells = rc_table.rows[i].cells
+                    row_cells[0].text = feature_name
+                    row_cells[1].text = f'{company_value:.3f}'
+                    row_cells[2].text = comparison
+                    row_cells[3].text = f'{contribution:+.3f}'
+                    row_cells[4].text = interpretation
+
+            elif hazard_ratios:
+                # Hiển thị HAZARD RATIOS (model-level, tổng quát)
+                self.add_section_title('IV. HAZARD RATIOS - YẾU TỐ RỦI RO QUAN TRỌNG (Model-Level)')
+
+                # Giải thích Hazard Ratio
+                explanation = self.doc.add_paragraph(
+                    'Hazard Ratio (HR) đo lường mức độ ảnh hưởng TRUNG BÌNH của từng chỉ số tài chính đến rủi ro vỡ nợ:'
+                )
+                explanation.add_run('\n• HR > 1: Chỉ số này làm TĂNG nguy cơ vỡ nợ (càng cao càng nguy hiểm)')
+                explanation.add_run('\n• HR < 1: Chỉ số này làm GIẢM nguy cơ vỡ nợ (bảo vệ doanh nghiệp)')
+                explanation.add_run('\n• HR = 1: Chỉ số không ảnh hưởng đến rủi ro')
+
+                self.doc.add_paragraph()
+
+                # Tạo bảng hazard ratios
                 hr_table = self.doc.add_table(rows=len(hazard_ratios) + 1, cols=4)
                 hr_table.style = 'Light Grid Accent 1'
 

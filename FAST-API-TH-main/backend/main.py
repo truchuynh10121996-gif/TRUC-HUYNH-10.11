@@ -2419,8 +2419,12 @@ async def predict_survival(
         # 6. PHÂN LOẠI RỦI RO
         risk_info = survival_system.get_risk_classification(median_time)
 
-        # 7. LẤY HAZARD RATIOS (TOP 5)
-        hazard_ratios = survival_system.get_hazard_ratios(top_k=5)
+        # 7. LẤY INDIVIDUAL RISK CONTRIBUTIONS (TOP 5) - CỤ THỂ CHO DOANH NGHIỆP NÀY
+        # KHÁC với hazard ratios (model-level, giống nhau cho mọi DN)
+        risk_contributions = survival_system.get_individual_risk_contributions(
+            indicators=indicators,
+            top_k=5
+        )
 
         # 8. TẠO CẢNH BÁO NẾU RỦI RO CAO
         warning = None
@@ -2444,7 +2448,7 @@ async def predict_survival(
             "median_time_to_default": float(median_time),
             "survival_probabilities": survival_probs,
             "risk_classification": risk_info,
-            "hazard_ratios": hazard_ratios,
+            "risk_contributions": risk_contributions,  # CỤ THỂ cho doanh nghiệp này
             "warning": warning
         }
 
