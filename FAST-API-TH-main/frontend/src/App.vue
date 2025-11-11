@@ -4698,7 +4698,8 @@ export default {
         const response = await axios.post(`${API_BASE}/train-survival`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
-          }
+          },
+          timeout: 300000  // 5 phút (300000ms) để model có đủ thời gian train
         })
 
         if (response.data.status === 'success') {
