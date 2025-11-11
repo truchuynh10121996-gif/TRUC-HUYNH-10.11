@@ -56,6 +56,34 @@ app.add_middleware(
 
 
 # ================================================================================================
+# HELPER FUNCTIONS
+# ================================================================================================
+
+def convert_to_json_serializable(obj):
+    """
+    Chuyển đổi numpy/pandas types sang Python native types để JSON serialization
+    """
+    import numpy as np
+
+    if isinstance(obj, dict):
+        return {key: convert_to_json_serializable(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_to_json_serializable(item) for item in obj]
+    elif isinstance(obj, (np.integer, np.int64, np.int32, np.int16, np.int8)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float64, np.float32, np.float16)):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return convert_to_json_serializable(obj.tolist())
+    elif isinstance(obj, (np.bool_, bool)):
+        return bool(obj)
+    elif pd.isna(obj):
+        return None
+    else:
+        return obj
+
+
+# ================================================================================================
 # PYDANTIC MODELS
 # ================================================================================================
 
@@ -127,7 +155,7 @@ async def train_model(file: UploadFile = File(...)):
         # Xóa file tạm
         os.unlink(tmp_file_path)
 
-        return result
+        return convert_to_json_serializable(result)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -165,7 +193,7 @@ async def predict(input_data: PredictionInput):
         # Dự báo
         result = credit_model.predict(X_new)
 
-        return result
+        return convert_to_json_serializable(result)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -221,12 +249,14 @@ async def predict_from_xlsx(file: UploadFile = File(...)):
             prediction_result = credit_model.predict(X_new)
 
             # Trả về kết quả
-            return {
+            response_data = {
                 "status": "success",
                 "indicators": indicators_with_names,
                 "indicators_dict": indicators,
                 "prediction": prediction_result
             }
+
+            return convert_to_json_serializable(response_data)
         finally:
             # Xóa file tạm trong finally block để đảm bảo file luôn được xóa
             try:
@@ -1365,11 +1395,13 @@ async def train_early_warning_model(file: UploadFile = File(...)):
             # Train Early Warning System
             result = early_warning_system.train_models(df)
 
-            return {
+            response_data = {
                 "status": "success",
                 "message": "Early Warning System trained successfully!",
                 **result
             }
+
+            return convert_to_json_serializable(response_data)
 
         finally:
             # Xóa file tạm
@@ -1514,7 +1546,7 @@ async def early_warning_check(
         )
 
         # 9. TRẢ VỀ KẾT QUẢ
-        return {
+        response_data = {
             "status": "success",
             "health_score": health_score,
             "risk_level": risk_info['risk_level'],
@@ -1529,6 +1561,8 @@ async def early_warning_check(
             "feature_importances": early_warning_system.feature_importances,
             "report_period": report_period
         }
+
+        return convert_to_json_serializable(response_data)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1585,11 +1619,13 @@ async def train_anomaly_model(file: UploadFile = File(...)):
             # Train Anomaly Detection System
             result = anomaly_system.train_model(df)
 
-            return {
+            response_data = {
                 "status": "success",
                 "message": "Anomaly Detection System trained successfully!",
                 **result
             }
+
+            return convert_to_json_serializable(response_data)
 
         finally:
             # Xóa file tạm
@@ -1710,7 +1746,7 @@ async def check_anomaly(
             })
 
         # 8. TRẢ VỀ KẾT QUẢ
-        return {
+        response_data = {
             "status": "success",
             "anomaly_score": anomaly_score,
             "risk_level": risk_level,
@@ -1722,6 +1758,8 @@ async def check_anomaly(
             "comparison_with_healthy": comparison_with_healthy,
             "indicators": indicators
         }
+
+        return convert_to_json_serializable(response_data)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1888,7 +1926,8 @@ async def train_survival_models(file: UploadFile = File(...)):
                     detail=f"Cả 2 models đều thất bại. Errors: {training_errors}"
                 )
 
-            return {
+            # Tạo response data và convert sang JSON serializable types
+            response_data = {
                 "status": "success",
                 "message": "Đã huấn luyện thành công các mô hình Survival Analysis",
                 "cox_model": cox_result if cox_result else {"status": "failed", "error": "Training failed"},
@@ -1901,6 +1940,9 @@ async def train_survival_models(file: UploadFile = File(...)):
                 "n_censored": int((1 - df['event']).sum())
             }
 
+            # Convert tất cả numpy/pandas types sang Python native types
+            return convert_to_json_serializable(response_data)
+
         finally:
             # Xóa file tạm
             if tmp_file_path and os.path.exists(tmp_file_path):
@@ -1910,7 +1952,7 @@ async def train_survival_models(file: UploadFile = File(...)):
                 except Exception as e:
                     print(f"⚠️  [SURVIVAL TRAINING] Không thể xóa file tạm: {str(e)}")
 
-    except HTTPException:
+    except HTTPException as e:
         print(f"❌ [SURVIVAL TRAINING] HTTPException: {str(e)}")
         raise
     except Exception as e:
@@ -2017,7 +2059,7 @@ async def predict_survival(
                 'recommendation': 'Xem xét hạn mức tín dụng thấp hơn và yêu cầu báo cáo tài chính định kỳ.'
             }
 
-        return {
+        response_data = {
             "status": "success",
             "indicators": indicators,
             "survival_curve": survival_curve,
@@ -2027,6 +2069,8 @@ async def predict_survival(
             "hazard_ratios": hazard_ratios,
             "warning": warning
         }
+
+        return convert_to_json_serializable(response_data)
 
     except HTTPException:
         raise
@@ -2062,12 +2106,14 @@ async def get_survival_metrics():
         # Lấy Kaplan-Meier baseline
         km_baseline = survival_system.calculate_kaplan_meier()
 
-        return {
+        response_data = {
             "status": "success",
             "metrics": survival_system.metrics,
             "hazard_ratios": hazard_ratios,
             "kaplan_meier_baseline": km_baseline
         }
+
+        return convert_to_json_serializable(response_data)
 
     except HTTPException:
         raise
@@ -2099,10 +2145,12 @@ async def analyze_survival_gemini(
         analyzer = get_gemini_analyzer(GEMINI_API_KEY)
         analysis = analyzer.analyze_survival_results(survival_data)
 
-        return {
+        response_data = {
             "status": "success",
             "analysis": analysis
         }
+
+        return convert_to_json_serializable(response_data)
 
     except Exception as e:
         raise HTTPException(
