@@ -64,13 +64,34 @@
       >
         📊 Mô phỏng Vĩ mô
       </button>
-      <button
-        @click="activeTab = 'train'"
-        class="tab-button"
-        :class="{ active: activeTab === 'train' }"
-      >
-        📚 Huấn luyện mô hình
-      </button>
+      <div class="tab-button-wrapper"
+        @mouseenter="showTrainDropdown = true"
+        @mouseleave="showTrainDropdown = false">
+        <button
+          @click="activeTab = 'train'"
+          class="tab-button"
+          :class="{ active: activeTab === 'train' }"
+        >
+          📚 Huấn luyện mô hình ▾
+        </button>
+        <div v-if="showTrainDropdown" class="train-dropdown">
+          <div class="dropdown-item" @click="activeTab = 'train'; trainSubTab = 'pd'">
+            🔮 Dự báo PD
+          </div>
+          <div class="dropdown-item" @click="activeTab = 'train'; trainSubTab = 'early-warning'">
+            ⚠️ Cảnh báo rủi ro sớm
+          </div>
+          <div class="dropdown-item" @click="activeTab = 'train'; trainSubTab = 'anomaly'">
+            🚨 Phát hiện gian lận
+          </div>
+          <div class="dropdown-item" @click="activeTab = 'train'; trainSubTab = 'survival'">
+            ⏳ Phân tích sống sót
+          </div>
+          <div class="dropdown-item" @click="activeTab = 'train'; trainSubTab = 'all'">
+            🚀 Huấn luyện tất cả
+          </div>
+        </div>
+      </div>
       <button
         @click="activeTab = 'early-warning'"
         class="tab-button"
@@ -1562,46 +1583,571 @@
         </div>
       </div>
 
-      <!-- ✅ TAB CONTENT: Huấn luyện Mô hình -->
+      <!-- ✅ TAB CONTENT: Huấn luyện Mô hình (WITH SUB-TABS) -->
       <div v-if="activeTab === 'train'" class="tab-content">
-        <div class="card">
-          <h2 class="card-title">📚 Huấn luyện Mô hình Machine Learning</h2>
+        <!-- Sub-tabs Navigation -->
+        <div class="training-subtabs-container">
+          <button
+            @click="trainSubTab = 'pd'"
+            class="training-subtab-btn"
+            :class="{ active: trainSubTab === 'pd' }"
+          >
+            🔮 Dự báo PD
+          </button>
+          <button
+            @click="trainSubTab = 'early-warning'"
+            class="training-subtab-btn"
+            :class="{ active: trainSubTab === 'early-warning' }"
+          >
+            ⚠️ Cảnh báo rủi ro sớm
+          </button>
+          <button
+            @click="trainSubTab = 'anomaly'"
+            class="training-subtab-btn"
+            :class="{ active: trainSubTab === 'anomaly' }"
+          >
+            🚨 Phát hiện gian lận
+          </button>
+          <button
+            @click="trainSubTab = 'survival'"
+            class="training-subtab-btn"
+            :class="{ active: trainSubTab === 'survival' }"
+          >
+            ⏳ Phân tích sống sót
+          </button>
+          <button
+            @click="trainSubTab = 'all'"
+            class="training-subtab-btn"
+            :class="{ active: trainSubTab === 'all' }"
+          >
+            🚀 Huấn luyện tất cả
+          </button>
+        </div>
 
-          <div style="margin-bottom: 2rem;">
-            <div class="upload-area" @click="$refs.trainFileInput.click()">
-              <div class="upload-icon">📤</div>
-              <p class="upload-text">{{ trainFileName || 'Tải lên file CSV để huấn luyện' }}</p>
-              <p class="upload-hint">File CSV cần có 14 cột (X_1 đến X_14) và cột 'default'</p>
+        <!-- SUB-TAB: Dự báo PD -->
+        <div v-if="trainSubTab === 'pd'" class="training-subtab-content" style="background: linear-gradient(135deg, #FFF5F7 0%, #FFE4E9 100%);">
+          <div class="card">
+            <!-- Hướng dẫn -->
+            <div class="training-guide">
+              <span class="guide-icon">📖</span>
+              <div class="guide-text">
+                <strong>Hướng dẫn:</strong> Tải file CSV chứa 14 chỉ số tài chính (X_1 → X_14) và cột 'default' (0=không vỡ nợ, 1=vỡ nợ).
+                Nhấn "Huấn luyện" để train mô hình Stacking Ensemble dự báo xác suất vỡ nợ (PD).
+              </div>
             </div>
 
-            <input
-              ref="trainFileInput"
-              type="file"
-              accept=".csv"
-              @change="handleTrainFile"
-              style="display: none"
-            />
+            <h2 class="card-title">📚 Huấn luyện Mô hình Dự báo PD</h2>
 
-            <button
-              @click="trainModel"
-              class="btn btn-primary"
-              :disabled="!trainFile || isTraining"
-              style="margin-top: 1rem; width: 100%;"
-            >
-              {{ isTraining ? '⏳ Đang huấn luyện...' : '🚀 Huấn luyện Mô hình' }}
-            </button>
+            <div style="margin-bottom: 2rem;">
+              <div class="upload-area" @click="$refs.trainFileInput.click()">
+                <div class="upload-icon">📤</div>
+                <p class="upload-text">{{ trainFileName || 'Tải lên file CSV để huấn luyện' }}</p>
+                <p class="upload-hint">File CSV cần có 14 cột (X_1 đến X_14) và cột 'default'</p>
+              </div>
+
+              <input
+                ref="trainFileInput"
+                type="file"
+                accept=".csv"
+                @change="handleTrainFile"
+                style="display: none"
+              />
+
+              <button
+                @click="trainModel"
+                class="btn btn-primary"
+                :disabled="!trainFile || isTraining"
+                style="margin-top: 1rem; width: 100%;"
+              >
+                {{ isTraining ? '⏳ Đang huấn luyện...' : '🚀 Huấn luyện Mô hình' }}
+              </button>
+            </div>
+
+            <!-- Training Results -->
+            <div v-if="trainResult" style="margin-top: 2rem;">
+              <h3 style="margin-bottom: 1rem; color: #FF6B9D; font-size: 1.2rem;">
+                ✅ Kết quả Huấn luyện
+              </h3>
+              <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 240, 247, 0.95) 100%); padding: 1.5rem; border-radius: 14px; border: 2px solid rgba(255, 182, 193, 0.3);">
+                <p style="margin-bottom: 0.5rem;"><strong>Số mẫu Train:</strong> {{ trainResult.train_samples }}</p>
+                <p style="margin-bottom: 0.5rem;"><strong>Số mẫu Test:</strong> {{ trainResult.test_samples }}</p>
+                <p style="margin-bottom: 0.5rem;"><strong>Accuracy (Test):</strong> {{ (trainResult.metrics_test.accuracy * 100).toFixed(2) }}%</p>
+                <p style="margin-bottom: 0;"><strong>AUC (Test):</strong> {{ (trainResult.metrics_test.auc * 100).toFixed(2) }}%</p>
+              </div>
+            </div>
+
+            <!-- Mô tả mô hình -->
+            <div class="model-description-section" style="margin-top: 3rem;">
+              <h3 style="color: #FF6B9D; margin-bottom: 1rem;">🧠 Về Mô hình Dự báo PD</h3>
+
+              <div class="model-info-card">
+                <h4>📊 Các mô hình được sử dụng:</h4>
+                <ul style="margin: 1rem 0; padding-left: 2rem;">
+                  <li><strong>Logistic Regression:</strong> Mô hình thống kê cổ điển, dễ hiểu và giải thích</li>
+                  <li><strong>Random Forest:</strong> Tập hợp nhiều cây quyết định để tăng độ chính xác</li>
+                  <li><strong>XGBoost:</strong> Thuật toán boosting mạnh mẽ với hiệu năng cao</li>
+                  <li><strong>Stacking Ensemble:</strong> Kết hợp 3 mô hình trên để cho kết quả tốt nhất</li>
+                </ul>
+
+                <h4>🎯 Mục đích sử dụng:</h4>
+                <p style="margin: 0.5rem 0;">
+                  Dự báo xác suất vỡ nợ (PD - Probability of Default) của doanh nghiệp dựa trên 14 chỉ số tài chính.
+                  Giúp ngân hàng đánh giá rủi ro tín dụng trước khi cho vay.
+                </p>
+
+                <h4>⚙️ Cách hoạt động:</h4>
+                <p style="margin: 0.5rem 0;">
+                  Mô hình học từ dữ liệu lịch sử (DN đã vỡ nợ vs chưa vỡ nợ), tìm ra mối quan hệ giữa các chỉ số tài chính
+                  và khả năng vỡ nợ. Khi có DN mới, mô hình sẽ tính toán xác suất vỡ nợ dựa trên 14 chỉ số của DN đó.
+                </p>
+
+                <h4>📈 Quy trình huấn luyện:</h4>
+                <ol style="margin: 0.5rem 0; padding-left: 2rem;">
+                  <li>Chia dữ liệu thành tập Train (80%) và Test (20%)</li>
+                  <li>Huấn luyện 3 mô hình cơ sở trên tập Train</li>
+                  <li>Sử dụng Logistic Regression để kết hợp kết quả (Stacking)</li>
+                  <li>Đánh giá hiệu năng trên tập Test bằng Accuracy và AUC</li>
+                </ol>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <!-- Training Results -->
-          <div v-if="trainResult" style="margin-top: 2rem;">
-            <h3 style="margin-bottom: 1rem; color: #FF6B9D; font-size: 1.2rem;">
-              ✅ Kết quả Huấn luyện
-            </h3>
-            <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 240, 247, 0.95) 100%); padding: 1.5rem; border-radius: 14px; border: 2px solid rgba(255, 182, 193, 0.3);">
-              <p style="margin-bottom: 0.5rem;"><strong>Số mẫu Train:</strong> {{ trainResult.train_samples }}</p>
-              <p style="margin-bottom: 0.5rem;"><strong>Số mẫu Test:</strong> {{ trainResult.test_samples }}</p>
-              <p style="margin-bottom: 0.5rem;"><strong>Accuracy (Test):</strong> {{ (trainResult.metrics_test.accuracy * 100).toFixed(2) }}%</p>
-              <p style="margin-bottom: 0;"><strong>AUC (Test):</strong> {{ (trainResult.metrics_test.auc * 100).toFixed(2) }}%</p>
+        <!-- SUB-TAB: Cảnh báo rủi ro sớm -->
+        <div v-if="trainSubTab === 'early-warning'" class="training-subtab-content" style="background: linear-gradient(135deg, #FFF9F0 0%, #FFE8CC 100%);">
+          <div class="card">
+            <!-- Hướng dẫn -->
+            <div class="training-guide">
+              <span class="guide-icon">📖</span>
+              <div class="guide-text">
+                <strong>Hướng dẫn:</strong> Tải file dữ liệu 1300 DN với cột 'label' (0=không vỡ nợ, 1=vỡ nợ).
+                Mô hình sẽ sử dụng Stacking + K-Means để phân nhóm và cảnh báo sớm các doanh nghiệp có nguy cơ cao.
+              </div>
+            </div>
+
+            <h2 class="card-title">⚠️ Huấn luyện Mô hình Cảnh báo Rủi ro Sớm</h2>
+
+            <!-- BƯỚC 1: Upload Model Training Data -->
+            <div class="early-warning-section" style="margin: 2rem 0;">
+              <h3 class="section-title" style="color: #FF9800; font-size: 1.3rem; margin-bottom: 1rem;">
+                🔄 Train Model với dữ liệu 1300 DN
+              </h3>
+
+              <div class="upload-area" @click="$refs.ewTrainFileInput.click()">
+                <div class="upload-icon">📊</div>
+                <p class="upload-text">{{ ewTrainFileName || 'Tải file Excel/CSV chứa 1300 DN' }}</p>
+                <p class="upload-hint">
+                  File cần có 14 cột (X_1 → X_14) + cột 'label' (0=không vỡ nợ, 1=vỡ nợ)
+                </p>
+              </div>
+
+              <input
+                ref="ewTrainFileInput"
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                @change="handleEWTrainFile"
+                style="display: none"
+              />
+
+              <button
+                @click="trainEarlyWarningModel"
+                class="btn btn-primary"
+                :disabled="!ewTrainFile || isEWTraining"
+                style="margin-top: 1rem; width: 100%;"
+              >
+                {{ isEWTraining ? '⏳ Đang huấn luyện mô hình...' : '🔄 Huấn luyện Mô hình Cảnh báo Sớm' }}
+              </button>
+
+              <!-- Kết quả training -->
+              <div v-if="ewTrainResult" style="margin-top: 1.5rem;">
+                <h4 style="color: #10B981; font-size: 1.1rem; margin-bottom: 1rem;">✅ Model đã được train thành công!</h4>
+                <div class="training-result-box">
+                  <p><strong>📊 Số mẫu:</strong> {{ ewTrainResult.num_samples }} (Tốt: {{ ewTrainResult.num_healthy }}, Vỡ nợ: {{ ewTrainResult.num_default }})</p>
+
+                  <div style="margin-top: 1rem;">
+                    <strong>🎯 Top 5 Chỉ số Quan trọng nhất:</strong>
+                    <div class="feature-importance-list" style="margin-top: 0.5rem;">
+                      <div
+                        v-for="(value, key) in getTopFeatureImportances()"
+                        :key="key"
+                        class="feature-importance-item"
+                        style="margin-bottom: 0.5rem;"
+                      >
+                        <span style="font-weight: 600;">{{ key }}:</span>
+                        <div class="importance-bar" :style="{ width: value * 300 + 'px', background: '#FF9800', height: '20px', borderRadius: '4px', display: 'inline-block', marginLeft: '1rem' }"></div>
+                        <span style="margin-left: 0.5rem;">{{ (value * 100).toFixed(2) }}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style="margin-top: 1rem;"><strong>🔍 Phân bố theo Nhóm:</strong></p>
+                  <div v-if="ewTrainResult.cluster_distribution" class="cluster-distribution">
+                    <span v-for="(count, cluster) in ewTrainResult.cluster_distribution" :key="cluster" style="margin-right: 1rem;">
+                      {{ cluster }}: {{ count }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mô tả mô hình -->
+            <div class="model-description-section" style="margin-top: 3rem;">
+              <h3 style="color: #FF9800; margin-bottom: 1rem;">🧠 Về Mô hình Cảnh báo Rủi ro Sớm</h3>
+
+              <div class="model-info-card">
+                <h4>📊 Các mô hình được sử dụng:</h4>
+                <ul style="margin: 1rem 0; padding-left: 2rem;">
+                  <li><strong>Stacking Ensemble:</strong> Kết hợp Logistic, Random Forest, XGBoost để dự báo PD chính xác</li>
+                  <li><strong>K-Means Clustering:</strong> Phân nhóm doanh nghiệp theo đặc điểm tài chính</li>
+                  <li><strong>Gemini AI:</strong> Phân tích chuyên sâu và đưa ra khuyến nghị cụ thể</li>
+                </ul>
+
+                <h4>🎯 Mục đích sử dụng:</h4>
+                <p style="margin: 0.5rem 0;">
+                  Phát hiện sớm các doanh nghiệp có dấu hiệu xấu đi về tài chính, giúp ngân hàng can thiệp kịp thời
+                  trước khi doanh nghiệp rơi vào tình trạng vỡ nợ. Hệ thống cung cấp cảnh báo theo 3 mức độ: 🟢 Tốt, 🟡 Cảnh báo, 🔴 Nguy hiểm.
+                </p>
+
+                <h4>⚙️ Cách hoạt động:</h4>
+                <p style="margin: 0.5rem 0;">
+                  Mô hình kết hợp 2 phương pháp: (1) Dự báo PD bằng Stacking để đánh giá rủi ro hiện tại,
+                  (2) Phân cụm K-Means để so sánh DN với các nhóm DN tương tự. DN ở nhóm có tỷ lệ vỡ nợ cao sẽ được cảnh báo đỏ.
+                </p>
+
+                <h4>📈 Quy trình huấn luyện:</h4>
+                <ol style="margin: 0.5rem 0; padding-left: 2rem;">
+                  <li>Train mô hình Stacking trên 1300 DN lịch sử</li>
+                  <li>Áp dụng K-Means để chia DN thành 5 nhóm (clusters)</li>
+                  <li>Tính tỷ lệ vỡ nợ trung bình cho từng cluster</li>
+                  <li>Lưu trữ Feature Importance để xác định chỉ số quan trọng nhất</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-TAB: Phát hiện gian lận -->
+        <div v-if="trainSubTab === 'anomaly'" class="training-subtab-content" style="background: linear-gradient(135deg, #F0FFF4 0%, #D1F2DD 100%);">
+          <div class="card">
+            <!-- Hướng dẫn -->
+            <div class="training-guide">
+              <span class="guide-icon">📖</span>
+              <div class="guide-text">
+                <strong>Hướng dẫn:</strong> Tải file dữ liệu 1300 DN để train mô hình Isolation Forest.
+                Mô hình sẽ học các ngưỡng an toàn của các doanh nghiệp khỏe mạnh và phát hiện những bất thường nghi ngờ gian lận.
+              </div>
+            </div>
+
+            <h2 class="card-title">🚨 Huấn luyện Mô hình Phát hiện Gian lận</h2>
+
+            <!-- BƯỚC 1: Upload Model Training Data -->
+            <div class="anomaly-section" style="margin: 2rem 0;">
+              <h3 class="section-title" style="color: #4CAF50; font-size: 1.3rem; margin-bottom: 1rem;">
+                🔄 Train Model Phát hiện Bất thường
+              </h3>
+
+              <div class="upload-area" @click="$refs.anomalyTrainFileInput.click()" style="cursor: pointer;">
+                <div class="upload-icon">📊</div>
+                <p class="upload-text">{{ anomalyTrainFileName || 'Tải lên file dữ liệu 1300 DN (CSV/Excel)' }}</p>
+                <p class="upload-hint">
+                  File phải có 14 chỉ số (X_1 → X_14) + cột 'label' (0=khỏe mạnh, 1=vỡ nợ)
+                </p>
+              </div>
+              <input
+                ref="anomalyTrainFileInput"
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                @change="handleAnomalyTrainFile"
+                style="display: none"
+              />
+
+              <button
+                @click="trainAnomalyModel"
+                class="btn btn-primary"
+                :disabled="!anomalyTrainFile || isAnomalyTraining"
+                style="margin-top: 1rem; width: 100%;"
+              >
+                {{ isAnomalyTraining ? '⏳ Đang train model...' : '🚀 Train Model Phát hiện Bất thường' }}
+              </button>
+
+              <!-- Training Results -->
+              <div v-if="anomalyTrainResult" style="margin-top: 1.5rem;">
+                <h4 style="color: #10B981; font-size: 1.1rem; margin-bottom: 1rem;">✅ Model đã train thành công!</h4>
+
+                <!-- Feature Statistics Table -->
+                <div style="overflow-x: auto; margin-top: 1rem;">
+                  <h5 style="color: #4CAF50; margin-bottom: 0.5rem;">📊 Ngưỡng an toàn của 14 chỉ số (từ DN khỏe mạnh):</h5>
+                  <table class="indicators-table" style="font-size: 0.85rem;">
+                    <thead>
+                      <tr>
+                        <th>Chỉ số</th>
+                        <th>P5</th>
+                        <th>P50 (Trung vị)</th>
+                        <th>P95</th>
+                        <th>Mean</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="stat in anomalyTrainResult.feature_statistics" :key="stat.feature">
+                        <td>
+                          <div style="font-weight: 600;">{{ stat.feature }}</div>
+                          <div style="font-size: 0.8rem; color: #666;">{{ stat.name }}</div>
+                        </td>
+                        <td>{{ stat.P5 }}</td>
+                        <td style="font-weight: 600;">{{ stat.P50 }}</td>
+                        <td>{{ stat.P95 }}</td>
+                        <td>{{ stat.mean }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <p style="margin-top: 1rem; color: #666;">
+                  <strong>Contamination Rate:</strong> {{ (anomalyTrainResult.contamination_rate * 100).toFixed(1) }}%
+                  (Model giả định {{ (anomalyTrainResult.contamination_rate * 100).toFixed(1) }}% DN là bất thường)
+                </p>
+              </div>
+            </div>
+
+            <!-- Mô tả mô hình -->
+            <div class="model-description-section" style="margin-top: 3rem;">
+              <h3 style="color: #4CAF50; margin-bottom: 1rem;">🧠 Về Mô hình Phát hiện Gian lận</h3>
+
+              <div class="model-info-card">
+                <h4>📊 Mô hình được sử dụng:</h4>
+                <ul style="margin: 1rem 0; padding-left: 2rem;">
+                  <li><strong>Isolation Forest:</strong> Thuật toán phát hiện bất thường (Anomaly Detection) hiệu quả cao</li>
+                  <li><strong>Contamination Rate:</strong> Tự động tính tỷ lệ dự kiến DN bất thường trong tổng thể</li>
+                  <li><strong>Gemini AI:</strong> Phân tích sâu các chỉ số bất thường và đưa ra nhận định</li>
+                </ul>
+
+                <h4>🎯 Mục đích sử dụng:</h4>
+                <p style="margin: 0.5rem 0;">
+                  Phát hiện các doanh nghiệp có chỉ số tài chính bất thường, nghi ngờ gian lận hoặc khai báo sai lệch.
+                  Giúp ngân hàng tránh được các khoản vay có nguy cơ cao bị lừa đảo hoặc thông tin giả mạo.
+                </p>
+
+                <h4>⚙️ Cách hoạt động:</h4>
+                <p style="margin: 0.5rem 0;">
+                  Isolation Forest xây dựng các cây quyết định ngẫu nhiên. Các điểm dữ liệu bất thường sẽ bị "cô lập" nhanh hơn
+                  (ít phân nhánh hơn) so với điểm bình thường. Mô hình tính Anomaly Score cho mỗi DN, điểm càng cao càng bất thường.
+                  Sau đó so sánh từng chỉ số với ngưỡng an toàn (P5-P95) để xác định chỉ số nào bị lệch.
+                </p>
+
+                <h4>📈 Quy trình huấn luyện:</h4>
+                <ol style="margin: 0.5rem 0; padding-left: 2rem;">
+                  <li>Lọc ra các DN khỏe mạnh (label=0) từ 1300 DN</li>
+                  <li>Tính các ngưỡng phân vị (P5, P50, P95) và mean cho 14 chỉ số</li>
+                  <li>Train Isolation Forest trên toàn bộ dữ liệu với contamination rate tự động</li>
+                  <li>Lưu trữ model và ngưỡng để sử dụng cho prediction</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-TAB: Phân tích sống sót -->
+        <div v-if="trainSubTab === 'survival'" class="training-subtab-content" style="background: linear-gradient(135deg, #F5F0FF 0%, #E6D9FF 100%);">
+          <div class="card">
+            <!-- Hướng dẫn -->
+            <div class="training-guide">
+              <span class="guide-icon">📖</span>
+              <div class="guide-text">
+                <strong>Hướng dẫn:</strong> Tải file CSV/Excel có cột months_to_default và event (0=censored, 1=vỡ nợ).
+                Mô hình Cox Proportional Hazards và Random Survival Forest sẽ được train để dự báo thời gian sống sót của doanh nghiệp.
+              </div>
+            </div>
+
+            <h2 class="card-title">⏳ Huấn luyện Mô hình Phân tích Sống sót</h2>
+
+            <!-- Hướng dẫn Training -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; margin: 1.5rem 0; border-left: 4px solid #9C27B0;">
+              <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #333;">
+                <strong>📋 Yêu cầu dữ liệu training:</strong>
+              </p>
+              <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0; font-size: 0.9rem; color: #666;">
+                <li>File CSV hoặc Excel với các cột: <strong>X_1, X_2, ..., X_14, months_to_default, event</strong></li>
+                <li><strong>months_to_default:</strong> Số tháng từ thời điểm đánh giá đến khi vỡ nợ (hoặc thời gian quan sát)</li>
+                <li><strong>event:</strong> 0 = không vỡ nợ (censored), 1 = vỡ nợ (event occurred)</li>
+                <li>Dữ liệu lịch sử của nhiều doanh nghiệp (tối thiểu 50-100 mẫu)</li>
+              </ul>
+            </div>
+
+            <!-- Upload Training File -->
+            <div style="margin-bottom: 1.5rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #9C27B0;">
+                📂 Upload File Training Data:
+              </label>
+              <div class="upload-area" @click="$refs.survivalTrainInput.click()" style="border: 2px dashed #9C27B0; background: white;">
+                <div class="upload-icon" style="color: #9C27B0;">📊</div>
+                <p class="upload-text">{{ survivalTrainFileName || 'Tải lên file CSV/Excel chứa dữ liệu training' }}</p>
+                <p class="upload-hint" style="color: #9C27B0;">
+                  File phải có cột: X_1 → X_14, months_to_default, event
+                </p>
+              </div>
+              <input
+                ref="survivalTrainInput"
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                @change="handleSurvivalTrainFile"
+                style="display: none"
+              />
+            </div>
+
+            <!-- Training Button -->
+            <button
+              @click="trainSurvivalModel"
+              class="btn btn-primary"
+              :disabled="isSurvivalTraining || !survivalTrainFile"
+              style="width: 100%; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); font-size: 1.1rem; padding: 1rem;"
+            >
+              {{ isSurvivalTraining ? '⏳ Đang huấn luyện mô hình...' : '🎓 Huấn luyện Mô hình Cox PH & RSF' }}
+            </button>
+
+            <!-- Training Results -->
+            <div v-if="survivalTrainResult" style="margin-top: 1.5rem;">
+              <div style="background: white; border-radius: 12px; padding: 1.5rem; border: 2px solid #4CAF50;">
+                <h4 style="color: #2E7D32; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="font-size: 1.5rem;">✅</span>
+                  Kết quả Huấn luyện
+                </h4>
+
+                <!-- Cox Model Metrics -->
+                <div v-if="survivalTrainResult.cox_model" style="margin-bottom: 1rem;">
+                  <h5 style="color: #1976D2; margin: 0 0 0.5rem 0; font-size: 1rem;">
+                    📊 Cox Proportional Hazards Model:
+                  </h5>
+                  <div style="background: #E3F2FD; padding: 1rem; border-radius: 8px;">
+                    <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                      <strong>Concordance Index (C-index):</strong>
+                      <span style="color: #1565C0; font-weight: bold; font-size: 1.1rem;">
+                        {{ survivalTrainResult.cox_model.c_index.toFixed(4) }}
+                      </span>
+                      <span style="color: #666; font-size: 0.85rem; margin-left: 0.5rem;">
+                        ({{ survivalTrainResult.cox_model.c_index > 0.7 ? '✅ Tốt' : survivalTrainResult.cox_model.c_index > 0.6 ? '⚠️ Trung bình' : '❌ Cần cải thiện' }})
+                      </span>
+                    </p>
+                    <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                      <strong>Log Likelihood:</strong>
+                      <span style="color: #1565C0;">{{ survivalTrainResult.cox_model.log_likelihood.toFixed(2) }}</span>
+                    </p>
+                    <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                      <strong>Số mẫu training:</strong>
+                      <span style="color: #1565C0;">{{ survivalTrainResult.cox_model.n_samples }}</span>
+                    </p>
+                    <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                      <strong>Số features:</strong>
+                      <span style="color: #1565C0;">{{ survivalTrainResult.cox_model.n_features }}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- RSF Model Metrics -->
+                <div v-if="survivalTrainResult.rsf_model" style="margin-bottom: 1rem;">
+                  <h5 style="color: #7B1FA2; margin: 0 0 0.5rem 0; font-size: 1rem;">
+                    🌲 Random Survival Forest Model:
+                  </h5>
+                  <div style="background: #F3E5F5; padding: 1rem; border-radius: 8px;">
+                    <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                      <strong>Concordance Index (C-index):</strong>
+                      <span style="color: #7B1FA2; font-weight: bold; font-size: 1.1rem;">
+                        {{ survivalTrainResult.rsf_model.c_index.toFixed(4) }}
+                      </span>
+                      <span style="color: #666; font-size: 0.85rem; margin-left: 0.5rem;">
+                        ({{ survivalTrainResult.rsf_model.c_index > 0.7 ? '✅ Tốt' : survivalTrainResult.rsf_model.c_index > 0.6 ? '⚠️ Trung bình' : '❌ Cần cải thiện' }})
+                      </span>
+                    </p>
+                    <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                      <strong>Số cây (n_estimators):</strong>
+                      <span style="color: #7B1FA2;">{{ survivalTrainResult.rsf_model.n_estimators }}</span>
+                    </p>
+                    <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                      <strong>Số mẫu training:</strong>
+                      <span style="color: #7B1FA2;">{{ survivalTrainResult.rsf_model.n_samples }}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Kaplan-Meier Baseline -->
+                <div v-if="survivalTrainResult.kaplan_meier" style="margin-bottom: 1rem;">
+                  <h5 style="color: #9C27B0; margin: 0 0 0.5rem 0; font-size: 1rem;">
+                    📈 Kaplan-Meier Baseline Survival:
+                  </h5>
+                  <div style="background: #F3E5F5; padding: 1rem; border-radius: 8px;">
+                    <p style="margin: 0.3rem 0; font-size: 0.9rem;">
+                      <strong>Timeline:</strong>
+                      <span style="color: #7B1FA2;">
+                        0 → {{ Math.max(...survivalTrainResult.kaplan_meier.timeline) }} tháng
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mô tả mô hình -->
+            <div class="model-description-section" style="margin-top: 3rem;">
+              <h3 style="color: #9C27B0; margin-bottom: 1rem;">🧠 Về Mô hình Phân tích Sống sót</h3>
+
+              <div class="model-info-card">
+                <h4>📊 Các mô hình được sử dụng:</h4>
+                <ul style="margin: 1rem 0; padding-left: 2rem;">
+                  <li><strong>Cox Proportional Hazards (Cox PH):</strong> Mô hình thống kê đánh giá ảnh hưởng của các chỉ số lên rủi ro vỡ nợ</li>
+                  <li><strong>Random Survival Forest (RSF):</strong> Mô hình Machine Learning tổng quát hóa tốt hơn với dữ liệu phức tạp</li>
+                  <li><strong>Kaplan-Meier:</strong> Đường cong sống sót baseline để so sánh</li>
+                </ul>
+
+                <h4>🎯 Mục đích sử dụng:</h4>
+                <p style="margin: 0.5rem 0;">
+                  Dự báo thời gian sống sót của doanh nghiệp - tức là khoảng thời gian doanh nghiệp có thể duy trì hoạt động
+                  trước khi rơi vào vỡ nợ. Giúp ngân hàng đánh giá rủi ro theo thời gian và lập kế hoạch dài hạn.
+                </p>
+
+                <h4>⚙️ Cách hoạt động:</h4>
+                <p style="margin: 0.5rem 0;">
+                  Cox PH tính Hazard Ratio cho từng chỉ số - đo lường mức độ ảnh hưởng của chỉ số đó lên nguy cơ vỡ nợ.
+                  HR > 1 nghĩa là chỉ số càng cao thì rủi ro càng cao. RSF xây dựng nhiều cây quyết định về thời gian sống sót,
+                  sau đó tổng hợp để dự báo đường cong survival cho DN mới.
+                </p>
+
+                <h4>📈 Quy trình huấn luyện:</h4>
+                <ol style="margin: 0.5rem 0; padding-left: 2rem;">
+                  <li>Chuẩn bị dữ liệu: X_1-X_14, months_to_default (time), event (status)</li>
+                  <li>Train Cox PH model và tính Hazard Ratios cho 14 chỉ số</li>
+                  <li>Train Random Survival Forest với 100 cây</li>
+                  <li>Đánh giá bằng Concordance Index (C-index ≈ AUC cho survival)</li>
+                  <li>Tính Kaplan-Meier baseline survival curve</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-TAB: Huấn luyện tất cả -->
+        <div v-if="trainSubTab === 'all'" class="training-subtab-content" style="background: linear-gradient(135deg, #E0F7FF 0%, #B8E6FF 100%);">
+          <div class="card">
+            <!-- Hướng dẫn -->
+            <div class="training-guide">
+              <span class="guide-icon">📖</span>
+              <div class="guide-text">
+                <strong>Hướng dẫn:</strong> Tải các file dữ liệu cần thiết cho từng mô hình.
+                Nhấn "Huấn luyện Tất cả" để train đồng thời cả 4 mô hình: PD, Cảnh báo sớm, Phát hiện gian lận, Phân tích sống sót.
+              </div>
+            </div>
+            <h2 class="card-title">🚀 Huấn luyện Tất cả Mô hình</h2>
+            <div style="text-align: center; padding: 3rem 2rem;">
+              <p style="font-size: 1.1rem; color: #666; margin-bottom: 2rem;">
+                Chức năng này cho phép bạn huấn luyện tất cả 4 mô hình cùng lúc để tiết kiệm thời gian.
+              </p>
+              <div class="info-note" style="background: #FFF9E6; border-left: 4px solid #FFC107; margin: 2rem 0;">
+                <span class="note-icon">⚠️</span>
+                <span class="note-text">
+                  Đảm bảo bạn đã chuẩn bị đầy đủ file dữ liệu cho cả 4 mô hình trước khi bắt đầu.
+                </span>
+              </div>
+              <p style="color: #999; margin-top: 2rem;">
+                ⏳ Chức năng đang được phát triển...
+              </p>
             </div>
           </div>
         </div>
@@ -2792,6 +3338,10 @@ export default {
     const trainFileName = ref('')
     const isTraining = ref(false)
     const trainResult = ref(null)
+
+    // Training Sub-tabs
+    const trainSubTab = ref('pd') // 'pd', 'early-warning', 'anomaly', 'survival', 'all'
+    const showTrainDropdown = ref(false)
 
     // Prediction
     const xlsxFile = ref(null)
@@ -5041,6 +5591,8 @@ export default {
       trainFileName,
       isTraining,
       trainResult,
+      trainSubTab,
+      showTrainDropdown,
       // Prediction
       xlsxFile,
       xlsxFileName,
@@ -5237,3 +5789,222 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* ====================================
+   TRAINING TAB DROPDOWN STYLES
+   ==================================== */
+.tab-button-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.train-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  background: white;
+  border: 2px solid #FF6B9D;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(255, 107, 157, 0.25);
+  z-index: 1000;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  animation: dropdown-fade-in 0.2s ease;
+}
+
+@keyframes dropdown-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  padding: 0.8rem 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: #333;
+  border-bottom: 1px solid #FFE4EC;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: linear-gradient(135deg, #FFF5F7 0%, #FFE4EC 100%);
+  color: #FF6B9D;
+  padding-left: 1.5rem;
+}
+
+/* ====================================
+   TRAINING SUB-TABS STYLES
+   ==================================== */
+.training-subtabs-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #FFF5F7 0%, #FFE4EC 100%);
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+
+.training-subtab-btn {
+  flex: 1;
+  min-width: 150px;
+  padding: 0.9rem 1.2rem;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: white;
+  color: #666;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.training-subtab-btn:hover {
+  background: linear-gradient(135deg, #FFF5F7 0%, #FFE4EC 100%);
+  color: #FF6B9D;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 157, 0.2);
+}
+
+.training-subtab-btn.active {
+  background: linear-gradient(135deg, #FF6B9D 0%, #FF8FAB 100%);
+  color: white;
+  border-color: #FF6B9D;
+  box-shadow: 0 4px 16px rgba(255, 107, 157, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ====================================
+   TRAINING SUB-TAB CONTENT STYLES
+   ==================================== */
+.training-subtab-content {
+  padding: 2rem;
+  border-radius: 16px;
+  animation: subtab-fade-in 0.3s ease;
+}
+
+@keyframes subtab-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ====================================
+   TRAINING GUIDE STYLES
+   ==================================== */
+.training-guide {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  border-left: 4px solid #4CAF50;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+}
+
+.guide-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.guide-text {
+  flex: 1;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #2E7D32;
+}
+
+.guide-text strong {
+  color: #1B5E20;
+  font-weight: 700;
+}
+
+/* ====================================
+   MODEL DESCRIPTION STYLES
+   ==================================== */
+.model-description-section {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 255, 0.98) 100%);
+  padding: 2rem;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 107, 157, 0.2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.model-info-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.model-info-card h4 {
+  color: #FF6B9D;
+  font-size: 1.1rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.8rem;
+  font-weight: 700;
+}
+
+.model-info-card h4:first-child {
+  margin-top: 0;
+}
+
+.model-info-card ul,
+.model-info-card ol {
+  line-height: 1.8;
+  color: #555;
+}
+
+.model-info-card li {
+  margin-bottom: 0.5rem;
+}
+
+.model-info-card p {
+  line-height: 1.7;
+  color: #666;
+}
+
+.model-info-card strong {
+  color: #333;
+  font-weight: 600;
+}
+
+/* ====================================
+   RESPONSIVE STYLES
+   ==================================== */
+@media (max-width: 768px) {
+  .training-subtabs-container {
+    flex-direction: column;
+  }
+
+  .training-subtab-btn {
+    min-width: 100%;
+  }
+
+  .train-dropdown {
+    left: 0;
+    right: 0;
+    width: 100%;
+  }
+}
+</style>
