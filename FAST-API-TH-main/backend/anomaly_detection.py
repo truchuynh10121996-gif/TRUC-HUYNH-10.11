@@ -268,7 +268,7 @@ class AnomalyDetectionSystem:
 
             # Cấu hình Gemini API
             genai.configure(api_key=gemini_api_key)
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-2.0-flash')
 
             # Tạo prompt chi tiết
             prompt = f"""

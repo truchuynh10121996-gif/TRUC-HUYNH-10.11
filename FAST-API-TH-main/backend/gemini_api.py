@@ -26,21 +26,8 @@ class GeminiAnalyzer:
         # Cấu hình Gemini
         genai.configure(api_key=self.api_key)
 
-        # ✅ Sử dụng Gemini 2.0+ với fallback chain
-        try:
-            # Model chính: Gemini 2.0 Flash Experimental
-            self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        except Exception:
-            try:
-                # Dự phòng 1: Gemini 2.0 Flash Thinking
-                self.model = genai.GenerativeModel('gemini-2.0-flash-thinking-exp-01-21')
-            except Exception:
-                try:
-                    # Dự phòng 2: Gemini 2.0 Flash (stable)
-                    self.model = genai.GenerativeModel('gemini-2.0-flash')
-                except Exception:
-                    # Dự phòng cuối: Gemini 1.5 Pro (nếu 2.0 chưa available)
-                    self.model = genai.GenerativeModel('gemini-1.5-pro')
+        # ✅ Sử dụng Gemini 2.0 Flash
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
     def analyze_credit_risk(self, prediction_data: Dict[str, Any]) -> str:
         """
         Phân tích kết quả dự báo rủi ro tín dụng bằng Gemini
