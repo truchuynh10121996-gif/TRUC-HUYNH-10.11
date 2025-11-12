@@ -1405,7 +1405,7 @@ Hãy viết báo cáo phân tích chi tiết (sử dụng Markdown) với cấu 
         raise HTTPException(status_code=500, detail=f"Lỗi khi phân tích vĩ mô bằng Gemini: {str(e)}")
 
 
-@app.post("/train-early-warning-model")
+@app.post("/train-early-warning")
 async def train_early_warning_model(file: UploadFile = File(...)):
     """
     Endpoint huấn luyện Early Warning System
@@ -1630,7 +1630,7 @@ async def early_warning_check(
         raise HTTPException(status_code=500, detail=f"Lỗi khi kiểm tra cảnh báo rủi ro: {str(e)}")
 
 
-@app.post("/train-anomaly-model")
+@app.post("/train-anomaly")
 async def train_anomaly_model(file: UploadFile = File(...)):
     """
     Endpoint huấn luyện Anomaly Detection System

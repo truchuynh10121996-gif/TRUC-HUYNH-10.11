@@ -4120,7 +4120,7 @@ export default {
         const formData = new FormData()
         formData.append('file', anomalyTrainFile.value)
 
-        const response = await axios.post(`${API_BASE}/train-anomaly-model`, formData, {
+        const response = await axios.post(`${API_BASE}/train-anomaly`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
 
@@ -4704,7 +4704,7 @@ export default {
         const formData = new FormData()
         formData.append('file', ewTrainFile.value)
 
-        const response = await axios.post(`${API_BASE}/train-early-warning-model`, formData, {
+        const response = await axios.post(`${API_BASE}/train-early-warning`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
