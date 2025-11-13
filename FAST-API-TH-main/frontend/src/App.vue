@@ -2398,22 +2398,54 @@
             </button>
           </div>
 
-          <!-- Hiển thị 14 chỉ số tài chính đã tính toán -->
-          <div v-if="ewIndicators && ewIndicators.length > 0" style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #FFF5F5 0%, #FFE4E1 100%); border-radius: 12px; border: 2px solid #FFB6C1;">
-            <h4 style="color: #FF6B6B; font-size: 1.2rem; margin-bottom: 1rem; text-align: center;">
+          <!-- Hiển thị 14 chỉ số tài chính đã tính toán - 2 bảng chi tiết -->
+          <div v-if="ewIndicators && ewIndicators.length > 0" style="margin: 2rem 0;">
+            <h3 style="margin-bottom: 1.5rem; color: #FF6B6B; text-align: center; font-size: 1.6rem;">
               📊 14 Chỉ số Tài chính đã tính toán
-            </h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.8rem;">
-              <div v-for="indicator in ewIndicators" :key="indicator.code" style="
-                background: white;
-                padding: 0.8rem;
-                border-radius: 8px;
-                box-shadow: 0 2px 6px rgba(255,107,107,0.1);
-                border-left: 3px solid #FF6B6B;
-              ">
-                <div style="color: #FF6B6B; font-weight: 600; font-size: 0.9rem;">{{ indicator.code }}</div>
-                <div style="color: #999; font-size: 0.75rem; margin: 0.2rem 0;">{{ indicator.name }}</div>
-                <div style="color: #333; font-weight: 700; font-size: 1rem;">{{ indicator.value.toFixed(4) }}</div>
+            </h3>
+            <div class="indicators-tables-container">
+              <!-- Bảng 1: X1-X7 -->
+              <div class="indicators-table-wrapper">
+                <h4 class="table-subtitle" style="color: #FF6B6B;">Nhóm 1: Sinh lời & Thanh toán (X1-X7)</h4>
+                <table class="indicators-table">
+                  <thead>
+                    <tr>
+                      <th>Chỉ số</th>
+                      <th>Giá trị</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="indicator in ewIndicators.slice(0, 7)" :key="indicator.code">
+                      <td>
+                        <div class="indicator-code-cell">{{ indicator.code }}</div>
+                        <div class="indicator-name-cell">{{ indicator.name }}</div>
+                      </td>
+                      <td class="indicator-value-cell">{{ indicator.value.toFixed(4) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Bảng 2: X8-X14 -->
+              <div class="indicators-table-wrapper">
+                <h4 class="table-subtitle" style="color: #FF6B6B;">Nhóm 2: Hiệu quả hoạt động (X8-X14)</h4>
+                <table class="indicators-table">
+                  <thead>
+                    <tr>
+                      <th>Chỉ số</th>
+                      <th>Giá trị</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="indicator in ewIndicators.slice(7, 14)" :key="indicator.code">
+                      <td>
+                        <div class="indicator-code-cell">{{ indicator.code }}</div>
+                        <div class="indicator-name-cell">{{ indicator.name }}</div>
+                      </td>
+                      <td class="indicator-value-cell">{{ indicator.value.toFixed(4) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -2673,22 +2705,54 @@
             </button>
           </div>
 
-          <!-- Hiển thị 14 chỉ số tài chính đã tính toán -->
-          <div v-if="anomalyIndicators && anomalyIndicators.length > 0" style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #FFF9F0 0%, #FFE8F0 100%); border-radius: 12px; border: 2px solid #FFB6C1;">
-            <h4 style="color: #FF4444; font-size: 1.2rem; margin-bottom: 1rem; text-align: center;">
+          <!-- Hiển thị 14 chỉ số tài chính đã tính toán - 2 bảng chi tiết -->
+          <div v-if="anomalyIndicators && anomalyIndicators.length > 0" style="margin: 2rem 0;">
+            <h3 style="margin-bottom: 1.5rem; color: #FF4444; text-align: center; font-size: 1.6rem;">
               📊 14 Chỉ số Tài chính đã tính toán
-            </h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.8rem;">
-              <div v-for="indicator in anomalyIndicators" :key="indicator.code" style="
-                background: white;
-                padding: 0.8rem;
-                border-radius: 8px;
-                box-shadow: 0 2px 6px rgba(255,68,68,0.1);
-                border-left: 3px solid #FF6B6B;
-              ">
-                <div style="color: #FF4444; font-weight: 600; font-size: 0.9rem;">{{ indicator.code }}</div>
-                <div style="color: #999; font-size: 0.75rem; margin: 0.2rem 0;">{{ indicator.name }}</div>
-                <div style="color: #333; font-weight: 700; font-size: 1rem;">{{ indicator.value.toFixed(4) }}</div>
+            </h3>
+            <div class="indicators-tables-container">
+              <!-- Bảng 1: X1-X7 -->
+              <div class="indicators-table-wrapper">
+                <h4 class="table-subtitle" style="color: #FF4444;">Nhóm 1: Sinh lời & Thanh toán (X1-X7)</h4>
+                <table class="indicators-table">
+                  <thead>
+                    <tr>
+                      <th>Chỉ số</th>
+                      <th>Giá trị</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="indicator in anomalyIndicators.slice(0, 7)" :key="indicator.code">
+                      <td>
+                        <div class="indicator-code-cell">{{ indicator.code }}</div>
+                        <div class="indicator-name-cell">{{ indicator.name }}</div>
+                      </td>
+                      <td class="indicator-value-cell">{{ indicator.value.toFixed(4) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Bảng 2: X8-X14 -->
+              <div class="indicators-table-wrapper">
+                <h4 class="table-subtitle" style="color: #FF4444;">Nhóm 2: Hiệu quả hoạt động (X8-X14)</h4>
+                <table class="indicators-table">
+                  <thead>
+                    <tr>
+                      <th>Chỉ số</th>
+                      <th>Giá trị</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="indicator in anomalyIndicators.slice(7, 14)" :key="indicator.code">
+                      <td>
+                        <div class="indicator-code-cell">{{ indicator.code }}</div>
+                        <div class="indicator-name-cell">{{ indicator.name }}</div>
+                      </td>
+                      <td class="indicator-value-cell">{{ indicator.value.toFixed(4) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -2928,22 +2992,54 @@
             </button>
           </div>
 
-          <!-- Hiển thị 14 chỉ số tài chính đã tính toán (nếu có) -->
-          <div v-if="survivalIndicatorsComputed && survivalIndicatorsComputed.length > 0" style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); border-radius: 12px; border: 2px solid #9C27B0;">
-            <h4 style="color: #9C27B0; font-size: 1.2rem; margin-bottom: 1rem; text-align: center;">
+          <!-- Hiển thị 14 chỉ số tài chính đã tính toán - 2 bảng chi tiết -->
+          <div v-if="survivalIndicatorsComputed && survivalIndicatorsComputed.length > 0" style="margin: 2rem 0;">
+            <h3 style="margin-bottom: 1.5rem; color: #9C27B0; text-align: center; font-size: 1.6rem;">
               📊 14 Chỉ số Tài chính đã tính toán
-            </h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.8rem;">
-              <div v-for="indicator in survivalIndicatorsComputed" :key="indicator.code" style="
-                background: white;
-                padding: 0.8rem;
-                border-radius: 8px;
-                box-shadow: 0 2px 6px rgba(156,39,176,0.1);
-                border-left: 3px solid #9C27B0;
-              ">
-                <div style="color: #9C27B0; font-weight: 600; font-size: 0.9rem;">{{ indicator.code }}</div>
-                <div style="color: #999; font-size: 0.75rem; margin: 0.2rem 0;">{{ indicator.name }}</div>
-                <div style="color: #333; font-weight: 700; font-size: 1rem;">{{ indicator.value.toFixed(4) }}</div>
+            </h3>
+            <div class="indicators-tables-container">
+              <!-- Bảng 1: X1-X7 -->
+              <div class="indicators-table-wrapper">
+                <h4 class="table-subtitle" style="color: #9C27B0;">Nhóm 1: Sinh lời & Thanh toán (X1-X7)</h4>
+                <table class="indicators-table">
+                  <thead>
+                    <tr>
+                      <th>Chỉ số</th>
+                      <th>Giá trị</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="indicator in survivalIndicatorsComputed.slice(0, 7)" :key="indicator.code">
+                      <td>
+                        <div class="indicator-code-cell">{{ indicator.code }}</div>
+                        <div class="indicator-name-cell">{{ indicator.name }}</div>
+                      </td>
+                      <td class="indicator-value-cell">{{ indicator.value.toFixed(4) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Bảng 2: X8-X14 -->
+              <div class="indicators-table-wrapper">
+                <h4 class="table-subtitle" style="color: #9C27B0;">Nhóm 2: Hiệu quả hoạt động (X8-X14)</h4>
+                <table class="indicators-table">
+                  <thead>
+                    <tr>
+                      <th>Chỉ số</th>
+                      <th>Giá trị</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="indicator in survivalIndicatorsComputed.slice(7, 14)" :key="indicator.code">
+                      <td>
+                        <div class="indicator-code-cell">{{ indicator.code }}</div>
+                        <div class="indicator-name-cell">{{ indicator.name }}</div>
+                      </td>
+                      <td class="indicator-value-cell">{{ indicator.value.toFixed(4) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -2970,12 +3066,11 @@
 
             <!-- Metrics Cards -->
             <div style="margin: 2rem 0;">
-              <h3 style="color: #9C27B0; margin-bottom: 1.5rem; text-align: center;">📊 Các Chỉ số Chính</h3>
+              <h3 style="color: #9C27B0; margin-bottom: 1.5rem; text-align: center; font-size: 1.8rem; font-weight: 700;">📊 Các Chỉ số Chính</h3>
               <div class="metrics-grid" style="
                 display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 1rem;
-                max-width: 70%;
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 1.5rem;
                 margin: 0 auto 2rem auto;
               ">
                 <!-- Median Time Card -->
@@ -2986,13 +3081,13 @@
                     ? 'linear-gradient(135deg, #FFF9E8 0%, #FFE082 100%)'
                     : 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
                   borderRadius: '16px',
-                  padding: '1.5rem',transform: 'scale(0.7)',
+                  padding: '1.5rem',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                   textAlign: 'center'
                 }">
-                  <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">⏰</div>
+                  <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⏰</div>
                   <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase;">Thời gian Trung vị Đến Vỡ nợ</h4>
-                  <div style="font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0;" :style="{
+                  <div style="font-size: 2.2rem; font-weight: bold; margin: 0.5rem 0;" :style="{
                     color: survivalResult.median_time_to_default < 12 ? '#C62828' : survivalResult.median_time_to_default < 24 ? '#F57C00' : '#2E7D32'
                   }">
                     {{ survivalResult.median_time_to_default.toFixed(1) }}
@@ -3043,13 +3138,13 @@
                 <div class="metric-card" :style="{
                   background: survivalResult.risk_classification.color,
                   borderRadius: '16px',
-                  padding: '1.5rem',transform: 'scale(0.7)',
+                  padding: '1.5rem',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                   textAlign: 'center'
                 }">
                   <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{{ survivalResult.risk_classification.icon }}</div>
                   <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase;">Phân loại Rủi ro</h4>
-                  <div style="font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0;" :style="{ color: survivalResult.risk_classification.text_color }">
+                  <div style="font-size: 2.2rem; font-weight: bold; margin: 0.5rem 0;" :style="{ color: survivalResult.risk_classification.text_color }">
                     {{ survivalResult.risk_classification.level }}
                   </div>
                   <div style="margin-top: 0.5rem; font-size: 0.85rem;" :style="{ color: survivalResult.risk_classification.text_color }">
@@ -3061,7 +3156,25 @@
 
             <!-- Survival Curve Chart -->
             <div style="margin: 3rem 0;">
-              <h3 style="color: #9C27B0; margin-bottom: 1.5rem; text-align: center;">📈 Đường Cong Sống Sót (Survival Curve)</h3>
+              <h3 style="color: #9C27B0; margin-bottom: 1rem; text-align: center; font-size: 1.8rem; font-weight: 700;">📈 Đường Cong Sống Sót (Survival Curve)</h3>
+
+              <!-- Chú thích giải thích biểu đồ -->
+              <div style="background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border-left: 4px solid #9C27B0;">
+                <h4 style="color: #7B1FA2; margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600;">📚 Cách đọc biểu đồ:</h4>
+                <div style="color: #666; line-height: 1.8;">
+                  <p style="margin: 0.5rem 0;"><strong>• Trục ngang (X):</strong> Thời gian tính bằng tháng (từ 0 đến 36 tháng).</p>
+                  <p style="margin: 0.5rem 0;"><strong>• Trục dọc (Y):</strong> Xác suất sống sót (từ 0% đến 100%) - xác suất doanh nghiệp không bị vỡ nợ.</p>
+                  <p style="margin: 0.5rem 0;"><strong>• Đường cong màu xanh dương:</strong> Thể hiện xác suất sống sót của doanh nghiệp theo thời gian. Đường cong đi xuống nghĩa là nguy cơ vỡ nợ tăng dần.</p>
+                  <p style="margin: 0.5rem 0;"><strong>• Vùng tin cậy (màu xanh nhạt):</strong> Khoảng dao động có thể có của xác suất sống sót (Confidence Interval 95%).</p>
+                  <p style="margin: 0.5rem 0;"><strong>• Đường ngang đứt đoạn (50%):</strong> Mốc 50% xác suất sống sót. Điểm giao với đường cong chính là "Thời gian trung vị đến vỡ nợ".</p>
+                </div>
+                <div style="background: white; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 3px solid #7B1FA2;">
+                  <p style="margin: 0; color: #7B1FA2; font-weight: 600; font-size: 0.95rem;">
+                    💡 <strong>Ví dụ:</strong> Nếu đường cong ở tháng thứ 12 chạm mức 70%, có nghĩa là doanh nghiệp có 70% khả năng không vỡ nợ trong vòng 12 tháng tới (và 30% nguy cơ vỡ nợ).
+                  </p>
+                </div>
+              </div>
+
               <div ref="survivalChartContainer" style="width: 100%; height: 500px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);"></div>
             </div>
 
@@ -3682,7 +3795,56 @@ export default {
     // ====================================
     // NEWS TAB - TIN TỨC
     // ====================================
-    const newsList = ref([])
+    const newsList = ref([
+      {
+        title: 'Ngân hàng Nhà nước điều chỉnh lãi suất cơ bản',
+        description: 'Ngân hàng Nhà nước đã công bố điều chỉnh lãi suất cơ bản, ảnh hưởng đến tín dụng và đầu tư của doanh nghiệp.',
+        date: '13/11/2025',
+        link: 'https://cafef.vn'
+      },
+      {
+        title: 'Thị trường chứng khoán biến động mạnh',
+        description: 'VN-Index có phiên giao dịch biến động với thanh khoản tăng cao, phản ánh tâm lý nhà đầu tư.',
+        date: '13/11/2025',
+        link: 'https://vnexpress.net/kinh-doanh'
+      },
+      {
+        title: 'Doanh nghiệp xuất khẩu gặp khó khăn do biến động tỷ giá',
+        description: 'Tỷ giá USD/VND tăng mạnh khiến nhiều doanh nghiệp xuất khẩu gặp khó khăn trong thanh toán và quản lý tài chính.',
+        date: '12/11/2025',
+        link: 'https://cafef.vn'
+      },
+      {
+        title: 'Chính phủ hỗ trợ doanh nghiệp nhỏ và vừa',
+        description: 'Gói hỗ trợ mới nhằm giúp doanh nghiệp nhỏ và vừa tiếp cận vốn ưu đãi, giảm lãi suất vay.',
+        date: '12/11/2025',
+        link: 'https://vnexpress.net/kinh-doanh'
+      },
+      {
+        title: 'Bất động sản: Dự báo xu hướng 2025',
+        description: 'Các chuyên gia dự báo thị trường bất động sản năm 2025 sẽ phục hồi với sự tăng trưởng ổn định.',
+        date: '11/11/2025',
+        link: 'https://cafef.vn'
+      },
+      {
+        title: 'Agribank đẩy mạnh chuyển đổi số trong kỷ nguyên 4.0',
+        description: 'Agribank triển khai nhiều giải pháp công nghệ tiên tiến nhằm nâng cao chất lượng dịch vụ và trải nghiệm khách hàng.',
+        date: '11/11/2025',
+        link: 'https://agribank.com.vn'
+      },
+      {
+        title: 'Lãi suất cho vay doanh nghiệp có xu hướng giảm',
+        description: 'Nhiều ngân hàng thương mại đang cạnh tranh bằng cách giảm lãi suất cho vay để thu hút khách hàng doanh nghiệp.',
+        date: '10/11/2025',
+        link: 'https://vnexpress.net/kinh-doanh'
+      },
+      {
+        title: 'Công nghệ AI trong ngân hàng: Xu hướng tất yếu',
+        description: 'Trí tuệ nhân tạo đang được ứng dụng rộng rãi trong đánh giá rủi ro tín dụng, phát hiện gian lận và tư vấn tài chính.',
+        date: '10/11/2025',
+        link: 'https://cafef.vn'
+      }
+    ])
     const isRefreshingNews = ref(false)
 
     // Hàm làm mới tin tức
