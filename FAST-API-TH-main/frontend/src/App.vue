@@ -2777,7 +2777,7 @@
       <!-- ✅ TAB CONTENT: Survival Analysis -->
       <div v-if="activeTab === 'survival'" class="tab-content">
         <div class="card">
-          <h2 class="card-title">⏳ Phân tích Sống sót & Dự báo Time-to-Default</h2>
+          <h2 class="card-title" style="color: #9C27B0;">⏳ Phân tích Sống sót & Dự báo Thời gian Đến Vỡ nợ</h2>
 
           <!-- Hướng dẫn sử dụng -->
           <div class="info-note" style="background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); border-left: 4px solid #9C27B0;">
@@ -2788,17 +2788,17 @@
               <strong>Cách sử dụng:</strong>
               <ol style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
                 <li>Bước 1: Upload file XLSX (3 sheets: CDKT, BCTN, LCTT) hoặc nhập thủ công 14 chỉ số tài chính</li>
-                <li>Bước 2: Nhấn "Phân tích Survival" để xem biểu đồ sống sót, median time-to-default và hazard ratios</li>
+                <li>Bước 2: Nhấn "Phân tích Sống sót" để xem biểu đồ sống sót, thời gian trung vị đến vỡ nợ và tỷ lệ rủi ro</li>
                 <li>Bước 3: Xem phân tích AI từ Gemini và xuất báo cáo Word nếu cần</li>
               </ol>
             </div>
           </div>
 
-          <!-- Dự báo Survival cho Doanh nghiệp -->
+          <!-- Dự báo Sống sót cho Doanh nghiệp -->
           <div style="margin: 2rem 0;">
             <h3 style="color: #9C27B0; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
               <span style="font-size: 1.5rem;">🔮</span>
-              Dự báo Survival cho Doanh nghiệp
+              Dự báo Sống sót cho Doanh nghiệp
             </h3>
           </div>
 
@@ -2870,7 +2870,7 @@
               :disabled="isSurvivalAnalyzing || (!survivalXlsxFile && survivalInputMode === 'upload') || (survivalInputMode === 'manual' && !isManualSurvivalValid)"
               style="margin-top: 1.5rem; width: 100%;"
             >
-              {{ isSurvivalAnalyzing ? '⏳ Đang phân tích...' : '🔬 Phân tích Survival & Dự báo Time-to-Default' }}
+              {{ isSurvivalAnalyzing ? '⏳ Đang phân tích...' : '🔬 Phân tích Sống sót & Dự báo Thời gian Đến Vỡ nợ' }}
             </button>
           </div>
 
@@ -2915,7 +2915,7 @@
                   textAlign: 'center'
                 }">
                   <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⏰</div>
-                  <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase;">Median Time-to-Default</h4>
+                  <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase;">Thời gian Trung vị Đến Vỡ nợ</h4>
                   <div style="font-size: 2.5rem; font-weight: bold; margin: 0.5rem 0;" :style="{
                     color: survivalResult.median_time_to_default < 12 ? '#C62828' : survivalResult.median_time_to_default < 24 ? '#F57C00' : '#2E7D32'
                   }">
@@ -3312,7 +3312,7 @@ export default {
     const anomalyTrainFileName = ref('')
     const isAnomalyTraining = ref(false)
     const anomalyTrainResult = ref(null)
-    const anomalyDataSource = ref('from_tab')
+    const anomalyDataSource = ref('upload_file')
     const anomalyCheckFile = ref(null)
     const anomalyCheckFileName = ref('')
     const isAnomalyChecking = ref(false)
@@ -5276,7 +5276,7 @@ export default {
           await nextTick()
           renderSurvivalChart()
 
-          alert('✅ Phân tích Survival hoàn tất!')
+          alert('✅ Phân tích Sống sót hoàn tất!')
         } else {
           throw new Error(response.data.detail || 'Lỗi không xác định')
         }
@@ -5488,7 +5488,7 @@ export default {
       try {
         const response = await axios.post(`${API_BASE}/chat-assistant`, {
           question: userQuestion,
-          context: survivalGeminiAnalysis.value || 'Phân tích Survival Analysis',
+          context: survivalGeminiAnalysis.value || 'Phân tích Sống sót',
           indicators: survivalResult.value.indicators,
           prediction: {
             median_time: survivalResult.value.median_time_to_default,
