@@ -27,7 +27,7 @@
       </div>
       <div class="title-section-center">
         <h1 class="main-title-center">CHƯƠNG TRÌNH ĐÁNH GIÁ RỦI RO TÍN DỤNG</h1>
-        <h2 class="sub-title-center">Dự báo xác suất Vỡ nợ KHDN (PD) & Phân tích AI chuyên sâu</h2>
+        <h2 class="sub-title-center">Trí Tuệ Nhân Tạo trong Dự báo Rủi Ro Tín Dụng KH Doanh Nghiệp</h2>
       </div>
     </div>
 
@@ -96,7 +96,6 @@
         @click="activeTab = 'early-warning'"
         class="tab-button"
         :class="{ active: activeTab === 'early-warning' }"
-        style="background: linear-gradient(135deg, #FF6B6B 0%, #FFB347 100%); color: white; font-weight: 700;"
       >
         ⚠️ Cảnh báo Rủi ro Sớm
       </button>
@@ -104,7 +103,6 @@
         @click="activeTab = 'anomaly'"
         class="tab-button"
         :class="{ active: activeTab === 'anomaly' }"
-        style="background: linear-gradient(135deg, #FF4444 0%, #FF8844 100%); color: white; font-weight: 700;"
       >
         🚨 Phát hiện Gian lận
       </button>
@@ -112,7 +110,6 @@
         @click="activeTab = 'survival'"
         class="tab-button"
         :class="{ active: activeTab === 'survival' }"
-        style="background: linear-gradient(135deg, #9C27B0 0%, #E1BEE7 100%); color: white; font-weight: 700;"
       >
         ⏳ Phân tích Sống sót
       </button>
@@ -128,7 +125,14 @@
           <!-- Ghi chú hướng dẫn -->
           <div class="info-note">
             <span class="note-icon">📝</span>
-            <span class="note-text">Tải hồ sơ doanh nghiệp gồm 3 phần Cân đối kế toán, Báo cáo thu nhập, Lưu chuyển tiền tệ và Bắt đầu Dự báo bằng mô hình Stacking Ensemble</span>
+            <span class="note-text">
+              <strong>Mục đích:</strong> Dự báo xác suất vỡ nợ (PD) của doanh nghiệp bằng mô hình Stacking Ensemble kết hợp Logistic Regression, Random Forest và XGBoost.
+              <br><strong>Lưu ý:</strong> Vui lòng huấn luyện mô hình ở Tab "Huấn luyện mô hình" trước khi sử dụng tính năng này.
+              <br><strong>Cách sử dụng:</strong>
+              <strong>Bước 1:</strong> Upload file XLSX (có 3 sheets: CDKT, BCTN, LCTT) →
+              <strong>Bước 2:</strong> Xem kết quả dự báo PD và 14 chỉ số tài chính →
+              <strong>Bước 3:</strong> Phân tích chuyên sâu bằng AI.
+            </span>
           </div>
 
         <!-- Upload XLSX File -->
@@ -768,7 +772,14 @@
           <!-- Ghi chú hướng dẫn -->
           <div class="info-note">
             <span class="note-icon">📝</span>
-            <span class="note-text">Mô phỏng tác động của các kịch bản kinh tế xấu đến xác suất vỡ nợ (PD) và phân tích khả năng chịu đựng của doanh nghiệp</span>
+            <span class="note-text">
+              <strong>Mục đích:</strong> Mô phỏng tác động của các kịch bản kinh tế xấu (giảm nhẹ, cú sốc trung bình, khủng hoảng) đến xác suất vỡ nợ (PD) và đánh giá khả năng chịu đựng của doanh nghiệp.
+              <br><strong>Lưu ý:</strong> Vui lòng huấn luyện mô hình ở Tab "Huấn luyện mô hình" trước khi sử dụng tính năng này.
+              <br><strong>Cách sử dụng:</strong>
+              <strong>Bước 1:</strong> Chọn nguồn dữ liệu (Tab Dự báo PD hoặc upload file mới) →
+              <strong>Bước 2:</strong> Chọn kịch bản biến động →
+              <strong>Bước 3:</strong> Xem kết quả stress test và khuyến nghị từ AI.
+            </span>
           </div>
 
           <!-- Bước 1: Chọn nguồn dữ liệu -->
@@ -1149,7 +1160,14 @@
           <!-- Ghi chú hướng dẫn -->
           <div class="info-note">
             <span class="note-icon">📝</span>
-            <span class="note-text">Mô phỏng tác động của các biến vĩ mô (GDP, lạm phát, lãi suất NHNN, tỷ giá) đến khả năng trả nợ của doanh nghiệp thông qua kênh truyền dẫn Macro-to-Micro</span>
+            <span class="note-text">
+              <strong>Mục đích:</strong> Mô phỏng tác động của các biến vĩ mô (GDP, lạm phát, lãi suất NHNN, tỷ giá USD/VND) đến khả năng trả nợ của doanh nghiệp thông qua kênh truyền dẫn Macro-to-Micro.
+              <br><strong>Lưu ý:</strong> Vui lòng huấn luyện mô hình ở Tab "Huấn luyện mô hình" trước khi sử dụng tính năng này.
+              <br><strong>Cách sử dụng:</strong>
+              <strong>Bước 1:</strong> Chọn nguồn dữ liệu (Tab Dự báo PD hoặc upload file mới) →
+              <strong>Bước 2:</strong> Chọn kịch bản vĩ mô (Suy thoái nhẹ/trung bình/nặng hoặc tự tạo) →
+              <strong>Bước 3:</strong> Xem kết quả stress test và phân tích tác động.
+            </span>
           </div>
 
           <!-- Bước 1: Chọn nguồn dữ liệu -->
@@ -2540,7 +2558,7 @@
       <!-- ✅ TAB CONTENT: Phát hiện Gian lận (Anomaly Detection) -->
       <div v-if="activeTab === 'anomaly'" class="tab-content">
         <div class="card anomaly-card">
-          <h2 class="card-title" style="color: #FF4444; font-size: 1.8rem; text-align: center;">🚨 Hệ thống Phát hiện Bất thường</h2>
+          <h2 class="card-title" style="color: #FF4444;">🚨 Hệ thống Phát hiện Bất thường</h2>
 
           <!-- Hướng dẫn sử dụng -->
           <div class="info-note" style="background: linear-gradient(135deg, #FFF5F5 0%, #FFE4E1 100%); border-left: 4px solid #FF4444;">
@@ -2560,24 +2578,26 @@
               🔍 Bước 1: Upload DN cần kiểm tra Bất thường
             </h3>
 
-            <!-- Chọn nguồn dữ liệu -->
-            <div style="margin-bottom: 1.5rem;">
-              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555;">
-                Chọn nguồn dữ liệu:
-              </label>
-              <div style="display: flex; gap: 1rem;">
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                  <input type="radio" value="from_tab" v-model="anomalyDataSource" style="margin-right: 0.5rem;" />
-                  <span>Dùng dữ liệu từ Tab Dự báo PD</span>
-                </label>
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                  <input type="radio" value="upload_file" v-model="anomalyDataSource" style="margin-right: 0.5rem;" />
-                  <span>Tải file mới</span>
-                </label>
-              </div>
+            <!-- Sub-tabs: Upload file vs Dùng dữ liệu từ Tab Dự báo PD -->
+            <div class="sub-tabs-container" style="margin: 1rem 0;">
+              <button
+                @click="anomalyDataSource = 'upload_file'"
+                class="sub-tab-button"
+                :class="{ active: anomalyDataSource === 'upload_file' }"
+              >
+                📤 Upload File Mới
+              </button>
+              <button
+                @click="anomalyDataSource = 'from_tab'"
+                class="sub-tab-button"
+                :class="{ active: anomalyDataSource === 'from_tab' }"
+                :disabled="!indicatorsDict"
+              >
+                🔗 Dùng dữ liệu từ Tab Dự báo PD
+              </button>
             </div>
 
-            <!-- Nếu chọn upload file -->
+            <!-- Mode: Upload File Mới -->
             <div v-if="anomalyDataSource === 'upload_file'" style="margin-bottom: 1rem;">
               <div class="upload-area" @click="$refs.anomalyCheckFileInput.click()" style="cursor: pointer;">
                 <div class="upload-icon">📄</div>
@@ -2593,7 +2613,7 @@
               />
             </div>
 
-            <!-- Nếu chọn dùng dữ liệu từ Tab Dự báo PD -->
+            <!-- Mode: Dùng dữ liệu từ Tab Dự báo PD -->
             <div v-if="anomalyDataSource === 'from_tab'" style="margin-bottom: 1rem;">
               <div v-if="!indicatorsDict" class="info-note" style="background: #FFF9E6; border-left: 4px solid #FFC107;">
                 <span class="note-icon">⚠️</span>
@@ -4883,9 +4903,11 @@ export default {
       let currentIndicators = {}
       if (ewCheckMode.value === 'from-predict' && indicatorsDict.value) {
         currentIndicators = indicatorsDict.value
+      } else if (ewCheckResult.value.indicators) {
+        // Nếu upload file, lấy từ backend (đã được tính và trả về)
+        currentIndicators = ewCheckResult.value.indicators
       } else {
-        // Nếu upload file, cần lấy từ backend (đã được tính)
-        // Tạm thời sử dụng cluster median
+        // Fallback: sử dụng cluster median nếu không có dữ liệu
         currentIndicators = clusterMedian
       }
 

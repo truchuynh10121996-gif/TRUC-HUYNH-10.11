@@ -1619,7 +1619,8 @@ async def early_warning_check(
             "pd_projection": pd_projection,
             "gemini_diagnosis": gemini_diagnosis,
             "feature_importances": early_warning_system.feature_importances,
-            "report_period": report_period
+            "report_period": report_period,
+            "indicators": indicators  # Thêm 14 chỉ số để frontend có thể vẽ biểu đồ radar
         }
 
         return convert_to_json_serializable(response_data)
