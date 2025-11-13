@@ -4721,10 +4721,22 @@ export default {
 
         if (response.data.status === 'success') {
           anomalyCheckResult.value = response.data
-          
-          // Lưu indicators để hiển thị
+
+          // Lưu indicators để hiển thị - LUÔN chuyển đổi từ dict sang array
           if (response.data.indicators) {
-            anomalyIndicators.value = response.data.indicators
+            const indicatorsArray = []
+            const indicatorNames = {
+              'X_1': 'Biên lợi nhuận gộp', 'X_2': 'Biên lợi nhuận trước thuế', 'X_3': 'ROA',
+              'X_4': 'ROE', 'X_5': 'Hệ số nợ trên tài sản', 'X_6': 'Hệ số nợ trên VCSH',
+              'X_7': 'Khả năng thanh toán hiện hành', 'X_8': 'Khả năng thanh toán nhanh',
+              'X_9': 'Khả năng trả lãi', 'X_10': 'Khả năng trả nợ gốc',
+              'X_11': 'Khả năng tạo tiền/VCSH', 'X_12': 'Vòng quay hàng tồn kho',
+              'X_13': 'Kỳ thu tiền bình quân', 'X_14': 'Hiệu suất sử dụng tài sản'
+            }
+            for (const [code, value] of Object.entries(response.data.indicators)) {
+              indicatorsArray.push({ code, name: indicatorNames[code] || code, value })
+            }
+            anomalyIndicators.value = indicatorsArray
           } else if (anomalyDataSource.value === 'from_tab') {
             // Nếu dùng dữ liệu từ tab, chuyển đổi indicatorsDict sang format array
             const indicatorsArray = []
@@ -5340,10 +5352,22 @@ export default {
 
         if (response.data.status === 'success') {
           ewCheckResult.value = response.data
-          
-          // Lưu indicators để hiển thị
+
+          // Lưu indicators để hiển thị - LUÔN chuyển đổi từ dict sang array
           if (response.data.indicators) {
-            ewIndicators.value = response.data.indicators
+            const indicatorsArray = []
+            const indicatorNames = {
+              'X_1': 'Biên lợi nhuận gộp', 'X_2': 'Biên lợi nhuận trước thuế', 'X_3': 'ROA',
+              'X_4': 'ROE', 'X_5': 'Hệ số nợ trên tài sản', 'X_6': 'Hệ số nợ trên VCSH',
+              'X_7': 'Khả năng thanh toán hiện hành', 'X_8': 'Khả năng thanh toán nhanh',
+              'X_9': 'Khả năng trả lãi', 'X_10': 'Khả năng trả nợ gốc',
+              'X_11': 'Khả năng tạo tiền/VCSH', 'X_12': 'Vòng quay hàng tồn kho',
+              'X_13': 'Kỳ thu tiền bình quân', 'X_14': 'Hiệu suất sử dụng tài sản'
+            }
+            for (const [code, value] of Object.entries(response.data.indicators)) {
+              indicatorsArray.push({ code, name: indicatorNames[code] || code, value })
+            }
+            ewIndicators.value = indicatorsArray
           } else if (ewCheckMode.value === 'from-predict') {
             // Nếu dùng dữ liệu từ tab predict, chuyển đổi indicatorsDict sang format array
             const indicatorsArray = []
@@ -5820,7 +5844,9 @@ export default {
     const analyzeSurvival = async () => {
       try {
         isSurvivalAnalyzing.value = true
+        // QUAN TRỌNG: Xóa kết quả cũ để đảm bảo UI cập nhật
         survivalResult.value = null
+        survivalIndicatorsComputed.value = null
         survivalAIAnalysis.value = ''
 
         const formData = new FormData()
@@ -5832,8 +5858,9 @@ export default {
           // Manual mode - convert indicators to JSON
           const indicatorsObj = {}
           manualSurvivalIndicators.value.forEach(ind => {
-            indicatorsObj[ind.code] = ind.value
+            indicatorsObj[ind.code] = parseFloat(ind.value) || 0
           })
+          console.log('📊 Survival Manual Input:', indicatorsObj)
           formData.append('indicators_json', JSON.stringify(indicatorsObj))
         }
 
@@ -5844,17 +5871,34 @@ export default {
         })
 
         if (response.data.status === 'success') {
+          console.log('📈 Survival Result:', {
+            median_time: response.data.median_time_to_default,
+            survival_probs: response.data.survival_probabilities
+          })
+
           survivalResult.value = response.data
-          
-          // Lưu indicators để hiển thị
+
+          // Lưu indicators để hiển thị - LUÔN chuyển đổi từ dict sang array
           if (response.data.indicators) {
-            survivalIndicatorsComputed.value = response.data.indicators
+            const indicatorsArray = []
+            const indicatorNames = {
+              'X_1': 'Biên lợi nhuận gộp', 'X_2': 'Biên lợi nhuận trước thuế', 'X_3': 'ROA',
+              'X_4': 'ROE', 'X_5': 'Hệ số nợ trên tài sản', 'X_6': 'Hệ số nợ trên VCSH',
+              'X_7': 'Khả năng thanh toán hiện hành', 'X_8': 'Khả năng thanh toán nhanh',
+              'X_9': 'Khả năng trả lãi', 'X_10': 'Khả năng trả nợ gốc',
+              'X_11': 'Khả năng tạo tiền/VCSH', 'X_12': 'Vòng quay hàng tồn kho',
+              'X_13': 'Kỳ thu tiền bình quân', 'X_14': 'Hiệu suất sử dụng tài sản'
+            }
+            for (const [code, value] of Object.entries(response.data.indicators)) {
+              indicatorsArray.push({ code, name: indicatorNames[code] || code, value })
+            }
+            survivalIndicatorsComputed.value = indicatorsArray
           } else if (survivalInputMode.value === 'manual') {
             // Nếu nhập thủ công, dùng dữ liệu từ manualSurvivalIndicators
             survivalIndicatorsComputed.value = manualSurvivalIndicators.value.map(ind => ({
               code: ind.code,
               name: ind.name,
-              value: ind.value
+              value: parseFloat(ind.value) || 0
             }))
           }
 
