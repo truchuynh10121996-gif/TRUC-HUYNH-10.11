@@ -113,6 +113,20 @@
       >
         ⏳ Phân tích Sống sót
       </button>
+      <button
+        @click="activeTab = 'news'"
+        class="tab-button"
+        :class="{ active: activeTab === 'news' }"
+      >
+        📰 Tin tức
+      </button>
+      <button
+        @click="activeTab = 'team'"
+        class="tab-button"
+        :class="{ active: activeTab === 'team' }"
+      >
+        👥 Nhóm tác giả
+      </button>
     </div>
 
     <!-- Main Container -->
@@ -284,10 +298,10 @@
             </div>
           </div>
 
-          <!-- Gemini Analysis Section -->
+          <!-- AI Analysis Section -->
           <div style="margin: 3rem 0;">
             <button
-              @click="analyzeWithGemini"
+              @click="analyzeWithAI"
               class="btn btn-primary"
               :disabled="isAnalyzing"
               style="width: 100%;"
@@ -416,7 +430,7 @@
               </h3>
               <p style="margin-bottom: 0.5rem; line-height: 1.6;">
                 Dashboard Tài Chính giúp bạn phân tích xu hướng và dữ liệu kinh tế theo từng ngành nghề tại Việt Nam.
-                Hệ thống sử dụng AI (Gemini) để thu thập, phân tích dữ liệu mới nhất và đưa ra khuyến nghị cho quyết định tín dụng.
+                Hệ thống sử dụng AI (AI) để thu thập, phân tích dữ liệu mới nhất và đưa ra khuyến nghị cho quyết định tín dụng.
               </p>
               <div class="guide-steps">
                 <div class="guide-step">
@@ -701,7 +715,7 @@
               <div id="pd-industry-charts-container" style="width: 100%; min-height: 400px;"></div>
             </div>
 
-            <!-- Hiển thị phân tích từ Gemini -->
+            <!-- Hiển thị phân tích từ AI -->
             <div v-if="pdAnalysisResult" class="deep-analysis-section" style="margin-top: 2rem;">
               <div class="analysis-box" style="border: 3px solid #9C27B0;">
                 <h3 style="color: #9C27B0; font-size: 1.3rem; margin-bottom: 1.5rem; text-align: center; font-weight: 900;">
@@ -1077,7 +1091,7 @@
               </div>
             </div>
 
-            <!-- Nút phân tích Gemini -->
+            <!-- Nút phân tích AI -->
             <button
               v-if="!scenarioAnalysis"
               @click="analyzeScenario"
@@ -1085,12 +1099,12 @@
               :disabled="isAnalyzingScenario"
               style="width: 100%; margin: 2rem 0;"
             >
-              {{ isAnalyzingScenario ? '⏳ Đang phân tích...' : '🤖 Phân tích chuyên sâu bằng Gemini AI' }}
+              {{ isAnalyzingScenario ? '⏳ Đang phân tích...' : '🤖 Phân tích chuyên sâu bằng AI AI' }}
             </button>
 
-            <!-- Kết quả phân tích Gemini -->
+            <!-- Kết quả phân tích AI -->
             <div v-if="scenarioAnalysis" class="gemini-analysis-section">
-              <h3 style="margin-bottom: 1rem; color: #FF6B9D;">🤖 Phân tích Chuyên sâu từ Gemini AI</h3>
+              <h3 style="margin-bottom: 1rem; color: #FF6B9D;">🤖 Phân tích Chuyên sâu từ AI AI</h3>
               <div class="analysis-content" style="white-space: pre-wrap;">{{ scenarioAnalysis }}</div>
             </div>
 
@@ -1526,7 +1540,7 @@
               </div>
             </div>
 
-            <!-- Gemini Analysis Section -->
+            <!-- AI Analysis Section -->
             <div style="margin: 3rem 0;">
               <button
                 @click="analyzeMacro"
@@ -1534,7 +1548,7 @@
                 :disabled="isAnalyzingMacro"
                 style="width: 100%;"
               >
-                {{ isAnalyzingMacro ? '⏳ Đang phân tích...' : '🤖 Phân tích sâu bằng Gemini AI' }}
+                {{ isAnalyzingMacro ? '⏳ Đang phân tích...' : '🤖 Phân tích sâu bằng AI AI' }}
               </button>
 
               <div v-if="macroAnalysis" class="analysis-box" style="margin-top: 2rem;">
@@ -1817,7 +1831,7 @@
                 <ul style="margin: 1rem 0; padding-left: 2rem;">
                   <li><strong>Stacking Ensemble:</strong> Kết hợp Logistic, Random Forest, XGBoost để dự báo PD chính xác</li>
                   <li><strong>K-Means Clustering:</strong> Phân nhóm doanh nghiệp theo đặc điểm tài chính</li>
-                  <li><strong>Gemini AI:</strong> Phân tích chuyên sâu và đưa ra khuyến nghị cụ thể</li>
+                  <li><strong>AI AI:</strong> Phân tích chuyên sâu và đưa ra khuyến nghị cụ thể</li>
                 </ul>
 
                 <h4>🎯 Mục đích sử dụng:</h4>
@@ -1934,7 +1948,7 @@
                 <ul style="margin: 1rem 0; padding-left: 2rem;">
                   <li><strong>Isolation Forest:</strong> Thuật toán phát hiện bất thường (Anomaly Detection) hiệu quả cao</li>
                   <li><strong>Contamination Rate:</strong> Tự động tính tỷ lệ dự kiến DN bất thường trong tổng thể</li>
-                  <li><strong>Gemini AI:</strong> Phân tích sâu các chỉ số bất thường và đưa ra nhận định</li>
+                  <li><strong>AI AI:</strong> Phân tích sâu các chỉ số bất thường và đưa ra nhận định</li>
                 </ul>
 
                 <h4>🎯 Mục đích sử dụng:</h4>
@@ -2290,7 +2304,7 @@
           <div class="info-note" style="background: linear-gradient(135deg, #FFF5F5 0%, #FFE4E1 100%); border-left: 4px solid #FF6B6B;">
             <span class="note-icon">📋</span>
             <span class="note-text">
-              Hệ thống sử dụng ML (Stacking + K-Means + Gemini AI) để chẩn đoán sức khỏe tài chính doanh nghiệp.
+              Hệ thống sử dụng ML (Stacking + K-Means + AI AI) để chẩn đoán sức khỏe tài chính doanh nghiệp.
               <br><strong>Lưu ý:</strong> Vui lòng huấn luyện mô hình ở Tab "Huấn luyện mô hình" trước khi sử dụng tính năng này.
               <br><strong>Bước 1:</strong> Upload DN cần kiểm tra →
               <strong>Bước 2:</strong> Xem kết quả chẩn đoán chi tiết.
@@ -2382,6 +2396,26 @@
             >
               {{ isEWChecking ? '⏳ Đang chẩn đoán...' : '🩺 Chẩn đoán Rủi ro' }}
             </button>
+          </div>
+
+          <!-- Hiển thị 14 chỉ số tài chính đã tính toán -->
+          <div v-if="ewIndicators && ewIndicators.length > 0" style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #FFF5F5 0%, #FFE4E1 100%); border-radius: 12px; border: 2px solid #FFB6C1;">
+            <h4 style="color: #FF6B6B; font-size: 1.2rem; margin-bottom: 1rem; text-align: center;">
+              📊 14 Chỉ số Tài chính đã tính toán
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.8rem;">
+              <div v-for="indicator in ewIndicators" :key="indicator.code" style="
+                background: white;
+                padding: 0.8rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(255,107,107,0.1);
+                border-left: 3px solid #FF6B6B;
+              ">
+                <div style="color: #FF6B6B; font-weight: 600; font-size: 0.9rem;">{{ indicator.code }}</div>
+                <div style="color: #999; font-size: 0.75rem; margin: 0.2rem 0;">{{ indicator.name }}</div>
+                <div style="color: #333; font-weight: 700; font-size: 1rem;">{{ indicator.value.toFixed(4) }}</div>
+              </div>
+            </div>
           </div>
 
           <!-- Hiển thị kết quả -->
@@ -2489,10 +2523,10 @@
               <div id="pd-projection-chart" style="width: 100%; height: 400px;"></div>
             </div>
 
-            <!-- 5. Gemini AI Diagnosis -->
+            <!-- 5. AI AI Diagnosis -->
             <div class="gemini-diagnosis-section" style="margin-bottom: 2rem;">
               <h4 style="color: #FF1493; font-size: 1.3rem; margin-bottom: 1rem; text-align: center; font-weight: 900;">
-                🤖 Báo cáo Chẩn đoán từ Gemini AI
+                🤖 Báo cáo Chẩn đoán từ AI AI
               </h4>
               <div class="gemini-diagnosis-box">
                 <div class="diagnosis-content" v-html="renderMarkdown(ewCheckResult.gemini_diagnosis)"></div>
@@ -2564,7 +2598,7 @@
           <div class="info-note" style="background: linear-gradient(135deg, #FFF5F5 0%, #FFE4E1 100%); border-left: 4px solid #FF4444;">
             <span class="note-icon">📋</span>
             <span class="note-text">
-              <strong>Mục đích:</strong> Phát hiện doanh nghiệp có hành vi tài chính bất thường, nghi ngờ gian lận hoặc báo cáo sai lệch bằng Isolation Forest và Gemini AI.
+              <strong>Mục đích:</strong> Phát hiện doanh nghiệp có hành vi tài chính bất thường, nghi ngờ gian lận hoặc báo cáo sai lệch bằng Isolation Forest và AI AI.
               <br><strong>Lưu ý:</strong> Vui lòng huấn luyện mô hình ở Tab "Huấn luyện mô hình" trước khi sử dụng tính năng này.
               <br><strong>Cách sử dụng:</strong>
               <strong>Bước 1:</strong> Upload DN cần kiểm tra hoặc dùng dữ liệu từ Tab Dự báo PD →
@@ -2637,6 +2671,26 @@
             >
               {{ isAnomalyChecking ? '⏳ Đang kiểm tra...' : '🔍 Kiểm tra Bất thường' }}
             </button>
+          </div>
+
+          <!-- Hiển thị 14 chỉ số tài chính đã tính toán -->
+          <div v-if="anomalyIndicators && anomalyIndicators.length > 0" style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #FFF9F0 0%, #FFE8F0 100%); border-radius: 12px; border: 2px solid #FFB6C1;">
+            <h4 style="color: #FF4444; font-size: 1.2rem; margin-bottom: 1rem; text-align: center;">
+              📊 14 Chỉ số Tài chính đã tính toán
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.8rem;">
+              <div v-for="indicator in anomalyIndicators" :key="indicator.code" style="
+                background: white;
+                padding: 0.8rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(255,68,68,0.1);
+                border-left: 3px solid #FF6B6B;
+              ">
+                <div style="color: #FF4444; font-weight: 600; font-size: 0.9rem;">{{ indicator.code }}</div>
+                <div style="color: #999; font-size: 0.75rem; margin: 0.2rem 0;">{{ indicator.name }}</div>
+                <div style="color: #333; font-weight: 700; font-size: 1rem;">{{ indicator.value.toFixed(4) }}</div>
+              </div>
+            </div>
           </div>
 
           <!-- Kết quả -->
@@ -2754,7 +2808,7 @@
               </p>
             </div>
 
-            <!-- Gemini Explanation Box -->
+            <!-- AI Explanation Box -->
             <div style="margin: 2rem 0;">
               <div class="gemini-explanation-box" style="
                 background: linear-gradient(135deg, #FFF5F5 0%, #FFE4E1 100%);
@@ -2765,7 +2819,7 @@
               ">
                 <div style="display: flex; align-items: center; margin-bottom: 1rem;">
                   <span style="font-size: 2rem; margin-right: 0.5rem;">🤖</span>
-                  <h4 style="color: #FF4444; font-size: 1.2rem; margin: 0;">Phân tích từ Gemini AI</h4>
+                  <h4 style="color: #FF4444; font-size: 1.2rem; margin: 0;">Phân tích từ AI AI</h4>
                 </div>
                 <div style="line-height: 1.8; color: #333; white-space: pre-wrap;">{{ anomalyCheckResult.gemini_explanation }}</div>
               </div>
@@ -2789,7 +2843,7 @@
               <ol style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
                 <li>Bước 1: Upload file XLSX (3 sheets: CDKT, BCTN, LCTT) hoặc nhập thủ công 14 chỉ số tài chính</li>
                 <li>Bước 2: Nhấn "Phân tích Sống sót" để xem biểu đồ sống sót, thời gian trung vị đến vỡ nợ và tỷ lệ rủi ro</li>
-                <li>Bước 3: Xem phân tích AI từ Gemini và xuất báo cáo Word nếu cần</li>
+                <li>Bước 3: Xem phân tích AI từ AI và xuất báo cáo Word nếu cần</li>
               </ol>
             </div>
           </div>
@@ -2874,6 +2928,26 @@
             </button>
           </div>
 
+          <!-- Hiển thị 14 chỉ số tài chính đã tính toán (nếu có) -->
+          <div v-if="survivalIndicatorsComputed && survivalIndicatorsComputed.length > 0" style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); border-radius: 12px; border: 2px solid #9C27B0;">
+            <h4 style="color: #9C27B0; font-size: 1.2rem; margin-bottom: 1rem; text-align: center;">
+              📊 14 Chỉ số Tài chính đã tính toán
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.8rem;">
+              <div v-for="indicator in survivalIndicatorsComputed" :key="indicator.code" style="
+                background: white;
+                padding: 0.8rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(156,39,176,0.1);
+                border-left: 3px solid #9C27B0;
+              ">
+                <div style="color: #9C27B0; font-weight: 600; font-size: 0.9rem;">{{ indicator.code }}</div>
+                <div style="color: #999; font-size: 0.75rem; margin: 0.2rem 0;">{{ indicator.name }}</div>
+                <div style="color: #333; font-weight: 700; font-size: 1rem;">{{ indicator.value.toFixed(4) }}</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Kết quả Survival Analysis -->
           <div v-if="survivalResult">
             <!-- Warning nếu có -->
@@ -2899,8 +2973,10 @@
               <h3 style="color: #9C27B0; margin-bottom: 1.5rem; text-align: center;">📊 Các Chỉ số Chính</h3>
               <div class="metrics-grid" style="
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 1.5rem;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+                max-width: 70%;
+                margin: 0 auto 2rem auto;
               ">
                 <!-- Median Time Card -->
                 <div class="metric-card" :style="{
@@ -2910,13 +2986,13 @@
                     ? 'linear-gradient(135deg, #FFF9E8 0%, #FFE082 100%)'
                     : 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
                   borderRadius: '16px',
-                  padding: '1.5rem',
+                  padding: '1.5rem',transform: 'scale(0.7)',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                   textAlign: 'center'
                 }">
-                  <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⏰</div>
+                  <div style="font-size: 1.8rem; margin-bottom: 0.5rem;">⏰</div>
                   <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; text-transform: uppercase;">Thời gian Trung vị Đến Vỡ nợ</h4>
-                  <div style="font-size: 2.5rem; font-weight: bold; margin: 0.5rem 0;" :style="{
+                  <div style="font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0;" :style="{
                     color: survivalResult.median_time_to_default < 12 ? '#C62828' : survivalResult.median_time_to_default < 24 ? '#F57C00' : '#2E7D32'
                   }">
                     {{ survivalResult.median_time_to_default.toFixed(1) }}
@@ -2967,7 +3043,7 @@
                 <div class="metric-card" :style="{
                   background: survivalResult.risk_classification.color,
                   borderRadius: '16px',
-                  padding: '1.5rem',
+                  padding: '1.5rem',transform: 'scale(0.7)',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                   textAlign: 'center'
                 }">
@@ -3051,19 +3127,19 @@
               </div>
             </div>
 
-            <!-- Gemini Analysis Button & Result -->
+            <!-- AI Analysis Button & Result -->
             <div style="margin: 3rem 0;">
               <button
-                @click="getSurvivalGeminiAnalysis"
+                @click="getSurvivalAIAnalysis"
                 class="btn btn-primary"
-                :disabled="isSurvivalGeminiAnalyzing"
+                :disabled="isSurvivalAIAnalyzing"
                 style="width: 100%; margin-bottom: 1.5rem;"
               >
-                {{ isSurvivalGeminiAnalyzing ? '⏳ Đang phân tích bằng AI...' : '🤖 Phân tích Chuyên sâu bằng Gemini AI' }}
+                {{ isSurvivalAIAnalyzing ? '⏳ Đang phân tích bằng AI...' : '🤖 Phân tích Chuyên sâu bằng AI AI' }}
               </button>
 
-              <!-- Gemini Analysis Result -->
-              <div v-if="survivalGeminiAnalysis" class="gemini-analysis-box" style="
+              <!-- AI Analysis Result -->
+              <div v-if="survivalAIAnalysis" class="gemini-analysis-box" style="
                 background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%);
                 border: 3px solid #9C27B0;
                 border-radius: 16px;
@@ -3072,10 +3148,10 @@
               ">
                 <div style="display: flex; align-items: center; margin-bottom: 1rem;">
                   <span style="font-size: 2rem; margin-right: 0.5rem;">🤖</span>
-                  <h4 style="color: #7B1FA2; font-size: 1.3rem; margin: 0;">Phân tích Chuyên sâu từ Gemini AI</h4>
+                  <h4 style="color: #7B1FA2; font-size: 1.3rem; margin: 0;">Phân tích Chuyên sâu từ AI AI</h4>
                 </div>
                 <div style="line-height: 1.8; color: #333; white-space: pre-wrap; font-size: 0.95rem;">
-                  {{ survivalGeminiAnalysis }}
+                  {{ survivalAIAnalysis }}
                 </div>
               </div>
             </div>
@@ -3141,6 +3217,244 @@
               Gửi
             </button>
           </div>
+
+      <!-- ✅ TAB CONTENT: Tin tức -->
+      <div v-if="activeTab === 'news'" class="tab-content">
+        <div class="card" style="background: linear-gradient(135deg, #FFF0F5 0%, #FFE4E9 50%, #FFF5E6 100%);">
+          <h2 class="card-title" style="color: #FF69B4; text-align: center; font-size: 2rem; text-shadow: 1px 1px 2px rgba(255,105,180,0.3);">
+            📰 Tin tức Kinh tế - Tài chính
+          </h2>
+
+          <!-- Giới thiệu -->
+          <div class="info-note" style="background: linear-gradient(135deg, #FFF9F0 0%, #FFE8F0 100%); border-left: 4px solid #FF69B4; margin: 2rem 0;">
+            <span class="note-icon">ℹ️</span>
+            <span class="note-text">
+              <strong>Nguồn tin:</strong> Các bài báo, tin tức kinh tế tài chính từ CafeF, VN Express, và các nguồn uy tín khác.<br>
+              <strong>Cập nhật:</strong> Tự động mỗi 5 tiếng/lần.<br>
+              <strong>Mục đích:</strong> Cung cấp thông tin kinh tế mới nhất để hỗ trợ quyết định tín dụng.
+            </span>
+          </div>
+
+          <!-- Nút làm mới -->
+          <div style="text-align: center; margin: 2rem 0;">
+            <button
+              @click="refreshNews"
+              class="btn btn-primary"
+              :disabled="isRefreshingNews"
+              style="background: linear-gradient(135deg, #FF69B4 0%, #FFB6C1 100%); padding: 1rem 2rem; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(255,105,180,0.3);"
+            >
+              {{ isRefreshingNews ? '⏳ Đang tải tin...' : '🔄 Làm mới Tin tức' }}
+            </button>
+          </div>
+
+          <!-- Danh sách tin tức -->
+          <div v-if="newsList && newsList.length > 0" style="margin: 2rem 0;">
+            <div v-for="(news, index) in newsList" :key="index" class="news-item" style="
+              background: white;
+              border-radius: 16px;
+              padding: 1.5rem;
+              margin-bottom: 1.5rem;
+              box-shadow: 0 4px 12px rgba(255,105,180,0.15);
+              border-left: 4px solid #FFB6C1;
+              transition: all 0.3s ease;
+              cursor: pointer;
+            " @mouseover="$event.currentTarget.style.transform = 'translateX(10px)'"
+               @mouseleave="$event.currentTarget.style.transform = 'translateX(0)'">
+              <h3 style="color: #FF1493; margin-bottom: 0.5rem; font-size: 1.3rem;">
+                {{ news.title }}
+              </h3>
+              <p style="color: #666; line-height: 1.6; margin-bottom: 1rem;">
+                {{ news.description }}
+              </p>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #999; font-size: 0.9rem;">📅 {{ news.date }}</span>
+                <a :href="news.link" target="_blank" style="
+                  color: #FF69B4;
+                  text-decoration: none;
+                  font-weight: 600;
+                  transition: color 0.3s;
+                " @mouseover="$event.target.style.color = '#FF1493'"
+                   @mouseleave="$event.target.style.color = '#FF69B4'">
+                  Đọc thêm →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading state -->
+          <div v-else-if="isRefreshingNews" style="text-align: center; padding: 3rem;">
+            <div class="loading-spinner" style="
+              width: 60px;
+              height: 60px;
+              border: 4px solid #FFE4E9;
+              border-top-color: #FF69B4;
+              border-radius: 50%;
+              animation: spin 1s linear infinite;
+              margin: 0 auto;
+            "></div>
+            <p style="color: #999; margin-top: 1rem;">Đang tải tin tức...</p>
+          </div>
+
+          <!-- Empty state -->
+          <div v-else style="text-align: center; padding: 3rem; color: #999;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">📰</div>
+            <p>Nhấn "Làm mới Tin tức" để tải tin mới nhất</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ TAB CONTENT: Nhóm tác giả -->
+      <div v-if="activeTab === 'team'" class="tab-content">
+        <div class="card" style="background: linear-gradient(135deg, #FFF5F8 0%, #FFE8F0 50%, #FFF0E6 100%);">
+          <h2 class="card-title" style="color: #FF69B4; text-align: center; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(255,105,180,0.2); margin-bottom: 1rem;">
+            👥 Nhóm Ánh Sáng Số
+          </h2>
+          <p style="text-align: center; color: #FF1493; font-size: 1.1rem; font-weight: 600; margin-bottom: 2rem;">
+            Cuộc thi Agribank làm chủ công nghệ trong kỷ nguyên số 2025
+          </p>
+
+          <!-- Ảnh nhóm -->
+          <div style="text-align: center; margin: 2rem 0;">
+            <img src="/NHOM ANH SANG SO.jpg" alt="Nhóm Ánh Sáng Số" style="
+              max-width: 100%;
+              height: auto;
+              border-radius: 20px;
+              box-shadow: 0 8px 24px rgba(255,105,180,0.3);
+              border: 5px solid #FFE4E9;
+            "/>
+          </div>
+
+          <!-- Thành viên -->
+          <div style="margin: 3rem 0;">
+            <h3 style="color: #FF69B4; text-align: center; font-size: 1.8rem; margin-bottom: 2rem; text-shadow: 1px 1px 2px rgba(255,105,180,0.2);">
+              🌟 Thành viên nhóm
+            </h3>
+
+            <!-- Trần Ngọc Trúc Huỳnh - VỊ TRÍ TRUNG TÂM, NỔI BẬT NHẤT -->
+            <div style="
+              background: linear-gradient(135deg, #FFE4E9 0%, #FFF0F5 100%);
+              border-radius: 24px;
+              padding: 2.5rem;
+              margin-bottom: 2rem;
+              box-shadow: 0 8px 24px rgba(255,20,147,0.25);
+              border: 3px solid #FF69B4;
+              text-align: center;
+              transform: scale(1.05);
+            ">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem;">
+                <img src="/Tran Ngoc Truc Huynh.jpg" alt="Trần Ngọc Trúc Huỳnh" style="
+                  width: 180px;
+                  height: 180px;
+                  border-radius: 50%;
+                  object-fit: cover;
+                  border: 5px solid #FF1493;
+                  box-shadow: 0 6px 20px rgba(255,20,147,0.4);
+                "/>
+                <div>
+                  <h3 style="color: #FF1493; font-size: 1.8rem; margin-bottom: 0.5rem; font-weight: 700;">
+                    ⭐ Trần Ngọc Trúc Huỳnh ⭐
+                  </h3>
+                  <p style="color: #FF69B4; font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">
+                    Giao dịch viên
+                  </p>
+                  <p style="color: #666; font-style: italic; margin-bottom: 1rem;">
+                    Agribank chi nhánh Tiền Giang
+                  </p>
+                  <div style="text-align: left; background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <p style="color: #FF1493; font-weight: 600; margin-bottom: 0.5rem;">📋 Phụ trách trong nhóm:</p>
+                    <ul style="color: #666; line-height: 1.8; padding-left: 1.5rem;">
+                      <li>Ý tưởng nâng cấp chương trình "Đánh giá rủi ro tín dụng KHDN version 2.0"</li>
+                      <li>Kỹ thuật chính – Coder chính cho mô hình nâng cấp version 2.0</li>
+                      <li>Trailer giới thiệu mô hình nâng cấp 2.0</li>
+                      <li>Phân chia, tổ chức công việc cho thành viên nhóm</li>
+                      <li>Hỗ trợ kỹ thuật cho mô hình version 1.0</li>
+                      <li>Kịch bản thuyết trình sân khấu Demo Version 1.0</li>
+                      <li>Thuyết trình trên sân khấu Demo Version 1.0</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2 thành viên còn lại - ngang hàng -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem; margin-top: 2rem;">
+              <!-- Nguyễn Hồng Cường -->
+              <div style="
+                background: linear-gradient(135deg, #FFF9F0 0%, #FFE8F0 100%);
+                border-radius: 20px;
+                padding: 2rem;
+                box-shadow: 0 6px 18px rgba(255,105,180,0.2);
+                border: 2px solid #FFB6C1;
+              ">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                  <img src="/NGUYEN HONG CUONG.jpg" alt="Nguyễn Hồng Cường" style="
+                    width: 150px;
+                    height: 150px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 4px solid #FFB6C1;
+                    box-shadow: 0 4px 12px rgba(255,182,193,0.4);
+                  "/>
+                </div>
+                <h3 style="color: #FF69B4; font-size: 1.5rem; text-align: center; margin-bottom: 0.5rem;">
+                  Nguyễn Hồng Cường
+                </h3>
+                <p style="color: #FF69B4; font-weight: 600; text-align: center; margin-bottom: 0.3rem;">
+                  Trưởng phòng Kiểm tra – Kiểm soát Nội bộ
+                </p>
+                <p style="color: #666; font-style: italic; text-align: center; margin-bottom: 1rem;">
+                  Agribank chi nhánh Đông Hải Phòng
+                </p>
+                <div style="background: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                  <p style="color: #FF69B4; font-weight: 600; margin-bottom: 0.5rem;">📋 Phụ trách:</p>
+                  <ul style="color: #666; line-height: 1.8; padding-left: 1.5rem; font-size: 0.95rem;">
+                    <li>Kỹ thuật chính – Coder chính mô hình version 1.0</li>
+                    <li>Demo trực tiếp mô hình version 1.0 trên sân khấu</li>
+                    <li>Hỗ trợ kỹ thuật cho mô hình nâng cấp version 2.0</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Nguyễn Trung Thành -->
+              <div style="
+                background: linear-gradient(135deg, #FFF9F0 0%, #FFE8F0 100%);
+                border-radius: 20px;
+                padding: 2rem;
+                box-shadow: 0 6px 18px rgba(255,105,180,0.2);
+                border: 2px solid #FFB6C1;
+              ">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                  <img src="/NGUYEN TRUNG THANH.jpg" alt="Nguyễn Trung Thành" style="
+                    width: 150px;
+                    height: 150px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 4px solid #FFB6C1;
+                    box-shadow: 0 4px 12px rgba(255,182,193,0.4);
+                  "/>
+                </div>
+                <h3 style="color: #FF69B4; font-size: 1.5rem; text-align: center; margin-bottom: 0.5rem;">
+                  Nguyễn Trung Thành
+                </h3>
+                <p style="color: #FF69B4; font-weight: 600; text-align: center; margin-bottom: 0.3rem;">
+                  Phó trưởng Phòng Kế toán Ngân quỹ
+                </p>
+                <p style="color: #666; font-style: italic; text-align: center; margin-bottom: 1rem;">
+                  Agribank chi nhánh Hải Dương
+                </p>
+                <div style="background: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                  <p style="color: #FF69B4; font-weight: 600; margin-bottom: 0.5rem;">📋 Phụ trách:</p>
+                  <ul style="color: #666; line-height: 1.8; padding-left: 1.5rem; font-size: 0.95rem;">
+                    <li>Hỗ trợ kỹ thuật cho mô hình version 1.0</li>
+                    <li>Thuyết trình sân khấu Demo Version 1.0</li>
+                    <li>Poster mô hình Version 1.0</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
@@ -3212,7 +3526,7 @@ export default {
     const indicatorsDict = ref(null)
     const predictionResult = ref(null)
 
-    // Gemini Analysis
+    // AI Analysis
     const isAnalyzing = ref(false)
     const geminiAnalysis = ref('')
 
@@ -3300,6 +3614,7 @@ export default {
     const ewIndustryCode = ref('manufacturing')
     const isEWChecking = ref(false)
     const ewCheckResult = ref(null)
+    const ewIndicators = ref(null)
 
     // Chatbot - Early Warning Tab
     const showEWChatbot = ref(false)
@@ -3317,6 +3632,7 @@ export default {
     const anomalyCheckFileName = ref('')
     const isAnomalyChecking = ref(false)
     const anomalyCheckResult = ref(null)
+    const anomalyIndicators = ref(null)
 
     // Computed: can check anomaly
     const canCheckAnomaly = computed(() => {
@@ -3351,9 +3667,10 @@ export default {
     ])
     const isSurvivalAnalyzing = ref(false)
     const survivalResult = ref(null)
+    const survivalIndicatorsComputed = ref(null)
     const survivalChartContainer = ref(null)
-    const isSurvivalGeminiAnalyzing = ref(false)
-    const survivalGeminiAnalysis = ref('')
+    const isSurvivalAIAnalyzing = ref(false)
+    const survivalAIAnalysis = ref('')
     const isExportingSurvivalReport = ref(false)
 
     // Chatbot - Survival Tab
@@ -3361,6 +3678,61 @@ export default {
     const survivalChatMessages = ref([])
     const survivalChatInput = ref('')
     const isSurvivalChatLoading = ref(false)
+
+    // ====================================
+    // NEWS TAB - TIN TỨC
+    // ====================================
+    const newsList = ref([])
+    const isRefreshingNews = ref(false)
+
+    // Hàm làm mới tin tức
+    const refreshNews = async () => {
+      isRefreshingNews.value = true
+      try {
+        // Danh sách tin tức mẫu (trong thực tế sẽ call API)
+        // Vì không có API thực tế, ta sẽ tạo dữ liệu mẫu
+        newsList.value = [
+          {
+            title: 'Ngân hàng Nhà nước điều chỉnh lãi suất cơ bản',
+            description: 'Ngân hàng Nhà nước đã công bố điều chỉnh lãi suất cơ bản, ảnh hưởng đến tín dụng và đầu tư của doanh nghiệp.',
+            date: new Date().toLocaleDateString('vi-VN'),
+            link: 'https://cafef.vn'
+          },
+          {
+            title: 'Thị trường chứng khoán biến động mạnh',
+            description: 'VN-Index có phiên giao dịch biến động với thanh khoản tăng cao, phản ánh tâm lý nhà đầu tư.',
+            date: new Date().toLocaleDateString('vi-VN'),
+            link: 'https://vnexpress.net/kinh-doanh'
+          },
+          {
+            title: 'Doanh nghiệp xuất khẩu gặp khó khăn do biến động tỷ giá',
+            description: 'Tỷ giá USD/VND tăng mạnh khiến nhiều doanh nghiệp xuất khẩu gặp khó khăn trong thanh toán và quản lý tài chính.',
+            date: new Date().toLocaleDateString('vi-VN'),
+            link: 'https://cafef.vn'
+          },
+          {
+            title: 'Chính phủ hỗ trợ doanh nghiệp nhỏ và vừa',
+            description: 'Gói hỗ trợ mới nhằm giúp doanh nghiệp nhỏ và vừa tiếp cận vốn ưu đãi, giảm lãi suất vay.',
+            date: new Date().toLocaleDateString('vi-VN'),
+            link: 'https://vnexpress.net/kinh-doanh'
+          },
+          {
+            title: 'Bất động sản: Dự báo xu hướng 2025',
+            description: 'Các chuyên gia dự báo thị trường bất động sản năm 2025 sẽ phục hồi với sự tăng trưởng ổn định.',
+            date: new Date().toLocaleDateString('vi-VN'),
+            link: 'https://cafef.vn'
+          }
+        ]
+        
+        setTimeout(() => {
+          isRefreshingNews.value = false
+        }, 1000)
+      } catch (error) {
+        console.error('Lỗi khi tải tin tức:', error)
+        alert('❌ Lỗi khi tải tin tức')
+        isRefreshingNews.value = false
+      }
+    }
 
     // Training - Survival Tab
     const survivalTrainFile = ref(null)
@@ -3560,7 +3932,7 @@ export default {
       }
     }
 
-    const analyzeWithGemini = async () => {
+    const analyzeWithAI = async () => {
       if (!predictionResult.value || !indicatorsDict.value) return
 
       isAnalyzing.value = true
@@ -3579,7 +3951,7 @@ export default {
           geminiAnalysis.value = response.data.analysis
         }
       } catch (error) {
-        alert('❌ Lỗi khi phân tích bằng Gemini: ' + (error.response?.data?.detail || error.message))
+        alert('❌ Lỗi khi phân tích bằng AI: ' + (error.response?.data?.detail || error.message))
       } finally {
         isAnalyzing.value = false
       }
@@ -4187,6 +4559,26 @@ export default {
 
         if (response.data.status === 'success') {
           anomalyCheckResult.value = response.data
+          
+          // Lưu indicators để hiển thị
+          if (response.data.indicators) {
+            anomalyIndicators.value = response.data.indicators
+          } else if (anomalyDataSource.value === 'from_tab') {
+            // Nếu dùng dữ liệu từ tab, chuyển đổi indicatorsDict sang format array
+            const indicatorsArray = []
+            const indicatorNames = {
+              'X_1': 'Biên lợi nhuận gộp', 'X_2': 'Biên lợi nhuận trước thuế', 'X_3': 'ROA',
+              'X_4': 'ROE', 'X_5': 'Hệ số nợ trên tài sản', 'X_6': 'Hệ số nợ trên VCSH',
+              'X_7': 'Khả năng thanh toán hiện hành', 'X_8': 'Khả năng thanh toán nhanh',
+              'X_9': 'Khả năng trả lãi', 'X_10': 'Khả năng trả nợ gốc',
+              'X_11': 'Khả năng tạo tiền/VCSH', 'X_12': 'Vòng quay hàng tồn kho',
+              'X_13': 'Kỳ thu tiền bình quân', 'X_14': 'Hiệu suất sử dụng tài sản'
+            }
+            for (const [code, value] of Object.entries(indicatorsDict.value)) {
+              indicatorsArray.push({ code, name: indicatorNames[code] || code, value })
+            }
+            anomalyIndicators.value = indicatorsArray
+          }
 
           // Đợi DOM cập nhật rồi render charts
           await nextTick()
@@ -4404,7 +4796,7 @@ export default {
       }
     }
 
-    // Gemini Analysis for Macro Tab
+    // AI Analysis for Macro Tab
     const analyzeMacro = async () => {
       if (!macroResult.value) return
 
@@ -4786,6 +5178,26 @@ export default {
 
         if (response.data.status === 'success') {
           ewCheckResult.value = response.data
+          
+          // Lưu indicators để hiển thị
+          if (response.data.indicators) {
+            ewIndicators.value = response.data.indicators
+          } else if (ewCheckMode.value === 'from-predict') {
+            // Nếu dùng dữ liệu từ tab predict, chuyển đổi indicatorsDict sang format array
+            const indicatorsArray = []
+            const indicatorNames = {
+              'X_1': 'Biên lợi nhuận gộp', 'X_2': 'Biên lợi nhuận trước thuế', 'X_3': 'ROA',
+              'X_4': 'ROE', 'X_5': 'Hệ số nợ trên tài sản', 'X_6': 'Hệ số nợ trên VCSH',
+              'X_7': 'Khả năng thanh toán hiện hành', 'X_8': 'Khả năng thanh toán nhanh',
+              'X_9': 'Khả năng trả lãi', 'X_10': 'Khả năng trả nợ gốc',
+              'X_11': 'Khả năng tạo tiền/VCSH', 'X_12': 'Vòng quay hàng tồn kho',
+              'X_13': 'Kỳ thu tiền bình quân', 'X_14': 'Hiệu suất sử dụng tài sản'
+            }
+            for (const [code, value] of Object.entries(indicatorsDict.value)) {
+              indicatorsArray.push({ code, name: indicatorNames[code] || code, value })
+            }
+            ewIndicators.value = indicatorsArray
+          }
 
           // Vẽ các biểu đồ sau khi có kết quả
           await nextTick()
@@ -5247,7 +5659,7 @@ export default {
       try {
         isSurvivalAnalyzing.value = true
         survivalResult.value = null
-        survivalGeminiAnalysis.value = ''
+        survivalAIAnalysis.value = ''
 
         const formData = new FormData()
 
@@ -5271,6 +5683,18 @@ export default {
 
         if (response.data.status === 'success') {
           survivalResult.value = response.data
+          
+          // Lưu indicators để hiển thị
+          if (response.data.indicators) {
+            survivalIndicatorsComputed.value = response.data.indicators
+          } else if (survivalInputMode.value === 'manual') {
+            // Nếu nhập thủ công, dùng dữ liệu từ manualSurvivalIndicators
+            survivalIndicatorsComputed.value = manualSurvivalIndicators.value.map(ind => ({
+              code: ind.code,
+              name: ind.name,
+              value: ind.value
+            }))
+          }
 
           // Render survival curve chart
           await nextTick()
@@ -5397,29 +5821,29 @@ export default {
       myChart.setOption(option)
     }
 
-    const getSurvivalGeminiAnalysis = async () => {
+    const getSurvivalAIAnalysis = async () => {
       if (!survivalResult.value) {
         alert('⚠️ Vui lòng phân tích survival trước!')
         return
       }
 
       try {
-        isSurvivalGeminiAnalyzing.value = true
+        isSurvivalAIAnalyzing.value = true
 
         const response = await axios.post(`${API_BASE}/analyze-survival-gemini`, {
           data: survivalResult.value
         })
 
         if (response.data.analysis) {
-          survivalGeminiAnalysis.value = response.data.analysis
+          survivalAIAnalysis.value = response.data.analysis
         } else {
-          throw new Error('Không nhận được phân tích từ Gemini')
+          throw new Error('Không nhận được phân tích từ AI')
         }
       } catch (error) {
-        console.error('Lỗi khi phân tích Gemini:', error)
+        console.error('Lỗi khi phân tích AI:', error)
         alert(`❌ Lỗi: ${error.response?.data?.detail || error.message}`)
       } finally {
-        isSurvivalGeminiAnalyzing.value = false
+        isSurvivalAIAnalyzing.value = false
       }
     }
 
@@ -5434,7 +5858,7 @@ export default {
 
         const exportData = {
           ...survivalResult.value,
-          gemini_analysis: survivalGeminiAnalysis.value
+          gemini_analysis: survivalAIAnalysis.value
         }
 
         const response = await axios.post(`${API_BASE}/export-survival-report`, exportData, {
@@ -5488,7 +5912,7 @@ export default {
       try {
         const response = await axios.post(`${API_BASE}/chat-assistant`, {
           question: userQuestion,
-          context: survivalGeminiAnalysis.value || 'Phân tích Sống sót',
+          context: survivalAIAnalysis.value || 'Phân tích Sống sót',
           indicators: survivalResult.value.indicators,
           prediction: {
             median_time: survivalResult.value.median_time_to_default,
@@ -5593,7 +6017,7 @@ export default {
       indicators,
       indicatorsDict,
       predictionResult,
-      // Gemini Analysis
+      // AI Analysis
       isAnalyzing,
       geminiAnalysis,
       // Export
@@ -5627,7 +6051,7 @@ export default {
       trainModel,
       handleXlsxFile,
       predictFromXlsx,
-      analyzeWithGemini,
+      analyzeWithAI,
       exportReport,
       getRiskClass,
       getRiskLabel,
@@ -5754,8 +6178,8 @@ export default {
       isSurvivalAnalyzing,
       survivalResult,
       survivalChartContainer,
-      isSurvivalGeminiAnalyzing,
-      survivalGeminiAnalysis,
+      isSurvivalAIAnalyzing,
+      survivalAIAnalysis,
       isExportingSurvivalReport,
       showSurvivalChatbot,
       survivalChatMessages,
@@ -5773,17 +6197,38 @@ export default {
       handleSurvivalXlsxFile,
       analyzeSurvival,
       renderSurvivalChart,
-      getSurvivalGeminiAnalysis,
+      getSurvivalAIAnalysis,
       exportSurvivalReport,
       openSurvivalChatbot,
       closeSurvivalChatbot,
-      sendSurvivalChatMessage
+      sendSurvivalChatMessage,
+      // Anomaly Indicators
+      anomalyIndicators,
+      // Early Warning Indicators
+      ewIndicators,
+      // Survival Indicators Computed
+      survivalIndicatorsComputed,
+      // News Tab
+      newsList,
+      isRefreshingNews,
+      refreshNews
     }
   }
 }
 </script>
 
 <style scoped>
+/* ====================================
+   LOADING SPINNER ANIMATION
+   ==================================== */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
 /* ====================================
    TRAINING TAB DROPDOWN STYLES
    ==================================== */
