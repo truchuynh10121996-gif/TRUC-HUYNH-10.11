@@ -143,6 +143,46 @@ def downsample_kaplan_meier(km_data: Dict[str, Any], max_points: int = 100) -> D
     }
 
 
+def convert_indicators_dict_to_array(indicators_dict: Dict[str, float]) -> List[Dict[str, Any]]:
+    """
+    Chuyển đổi indicators từ dict sang array format để frontend hiển thị
+
+    Args:
+        indicators_dict: Dict {'X_1': 0.123, 'X_2': 0.456, ...}
+
+    Returns:
+        List [{'code': 'X_1', 'name': '...', 'value': 0.123}, ...]
+    """
+    indicator_names = {
+        'X_1': 'Hệ số biên lợi nhuận gộp',
+        'X_2': 'Hệ số biên lợi nhuận trước thuế',
+        'X_3': 'Tỷ suất lợi nhuận trước thuế trên tổng tài sản (ROA)',
+        'X_4': 'Tỷ suất lợi nhuận trước thuế trên vốn chủ sở hữu (ROE)',
+        'X_5': 'Hệ số nợ trên tài sản',
+        'X_6': 'Hệ số nợ trên vốn chủ sở hữu',
+        'X_7': 'Khả năng thanh toán hiện hành',
+        'X_8': 'Khả năng thanh toán nhanh',
+        'X_9': 'Hệ số khả năng trả lãi',
+        'X_10': 'Hệ số khả năng trả nợ gốc',
+        'X_11': 'Hệ số khả năng tạo tiền trên vốn chủ sở hữu',
+        'X_12': 'Vòng quay hàng tồn kho',
+        'X_13': 'Kỳ thu tiền bình quân',
+        'X_14': 'Hiệu suất sử dụng tài sản'
+    }
+
+    result = []
+    for i in range(1, 15):
+        key = f'X_{i}'
+        if key in indicators_dict:
+            result.append({
+                'code': key,
+                'name': indicator_names[key],
+                'value': indicators_dict[key]
+            })
+
+    return result
+
+
 # ================================================================================================
 # PYDANTIC MODELS
 # ================================================================================================
@@ -1620,7 +1660,7 @@ async def early_warning_check(
             "gemini_diagnosis": gemini_diagnosis,
             "feature_importances": early_warning_system.feature_importances,
             "report_period": report_period,
-            "indicators": indicators  # Thêm 14 chỉ số để frontend có thể vẽ biểu đồ radar
+            "indicators": convert_indicators_dict_to_array(indicators)  # Convert dict to array format
         }
 
         return convert_to_json_serializable(response_data)
@@ -1817,7 +1857,7 @@ async def check_anomaly(
             "anomaly_type": anomaly_type,
             "gemini_explanation": gemini_explanation,
             "comparison_with_healthy": comparison_with_healthy,
-            "indicators": indicators
+            "indicators": convert_indicators_dict_to_array(indicators)  # Convert dict to array format
         }
 
         return convert_to_json_serializable(response_data)
@@ -2448,7 +2488,7 @@ async def predict_survival(
 
         response_data = {
             "status": "success",
-            "indicators": indicators,
+            "indicators": convert_indicators_dict_to_array(indicators),  # Convert dict to array format
             "survival_curve": survival_curve,
             "median_time_to_default": float(median_time),
             "survival_probabilities": survival_probs,
