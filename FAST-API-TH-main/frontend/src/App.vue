@@ -3159,17 +3159,17 @@
               <h3 style="color: #9C27B0; margin-bottom: 1rem; text-align: center; font-size: 1.8rem; font-weight: 700;">📈 Đường Cong Sống Sót (Survival Curve)</h3>
 
               <!-- Chú thích giải thích biểu đồ -->
-              <div style="background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; border-left: 4px solid #9C27B0;">
-                <h4 style="color: #7B1FA2; margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600;">📚 Cách đọc biểu đồ:</h4>
-                <div style="color: #666; line-height: 1.8;">
-                  <p style="margin: 0.5rem 0;"><strong>• Trục ngang (X):</strong> Thời gian tính bằng tháng (từ 0 đến 36 tháng).</p>
-                  <p style="margin: 0.5rem 0;"><strong>• Trục dọc (Y):</strong> Xác suất sống sót (từ 0% đến 100%) - xác suất doanh nghiệp không bị vỡ nợ.</p>
-                  <p style="margin: 0.5rem 0;"><strong>• Đường cong màu xanh dương:</strong> Thể hiện xác suất sống sót của doanh nghiệp theo thời gian. Đường cong đi xuống nghĩa là nguy cơ vỡ nợ tăng dần.</p>
-                  <p style="margin: 0.5rem 0;"><strong>• Vùng tin cậy (màu xanh nhạt):</strong> Khoảng dao động có thể có của xác suất sống sót (Confidence Interval 95%).</p>
-                  <p style="margin: 0.5rem 0;"><strong>• Đường ngang đứt đoạn (50%):</strong> Mốc 50% xác suất sống sót. Điểm giao với đường cong chính là "Thời gian trung vị đến vỡ nợ".</p>
+              <div class="survival-chart-legend">
+                <h4 class="legend-title">📚 Cách đọc biểu đồ:</h4>
+                <div class="legend-content">
+                  <p class="legend-item"><strong>• Trục ngang (X):</strong> Thời gian tính bằng tháng (từ 0 đến 36 tháng).</p>
+                  <p class="legend-item"><strong>• Trục dọc (Y):</strong> Xác suất sống sót (từ 0% đến 100%) - xác suất doanh nghiệp không bị vỡ nợ.</p>
+                  <p class="legend-item"><strong>• Đường cong màu xanh dương:</strong> Thể hiện xác suất sống sót của doanh nghiệp theo thời gian. Đường cong đi xuống nghĩa là nguy cơ vỡ nợ tăng dần.</p>
+                  <p class="legend-item"><strong>• Vùng tin cậy (màu xanh nhạt):</strong> Khoảng dao động có thể có của xác suất sống sót (Confidence Interval 95%).</p>
+                  <p class="legend-item"><strong>• Đường ngang đứt đoạn (50%):</strong> Mốc 50% xác suất sống sót. Điểm giao với đường cong chính là "Thời gian trung vị đến vỡ nợ".</p>
                 </div>
-                <div style="background: white; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 3px solid #7B1FA2;">
-                  <p style="margin: 0; color: #7B1FA2; font-weight: 600; font-size: 0.95rem;">
+                <div class="legend-example">
+                  <p>
                     💡 <strong>Ví dụ:</strong> Nếu đường cong ở tháng thứ 12 chạm mức 70%, có nghĩa là doanh nghiệp có 70% khả năng không vỡ nợ trong vòng 12 tháng tới (và 30% nguy cơ vỡ nợ).
                   </p>
                 </div>
@@ -6485,6 +6485,161 @@ export default {
   border-color: #FF6B9D;
   box-shadow: 0 4px 16px rgba(255, 107, 157, 0.3);
   transform: translateY(-2px);
+}
+
+/* ====================================
+   INDICATORS TABLE STYLES
+   ==================================== */
+.indicators-tables-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+@media (max-width: 968px) {
+  .indicators-tables-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.indicators-table-wrapper {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 245, 250, 0.98) 100%);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(255, 182, 193, 0.25);
+  border: 2px solid rgba(255, 182, 193, 0.3);
+}
+
+.table-subtitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+  padding-bottom: 0.8rem;
+  border-bottom: 2px solid rgba(255, 182, 193, 0.3);
+}
+
+.indicators-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.indicators-table thead {
+  background: linear-gradient(135deg, #FF6B9D 0%, #FF8FAB 100%);
+}
+
+.indicators-table thead th {
+  padding: 1rem;
+  text-align: left;
+  color: white;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.indicators-table tbody tr {
+  border-bottom: 1px solid rgba(255, 182, 193, 0.2);
+  transition: background-color 0.2s ease;
+}
+
+.indicators-table tbody tr:hover {
+  background-color: rgba(255, 245, 250, 0.5);
+}
+
+.indicators-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.indicators-table tbody td {
+  padding: 0.8rem 1rem;
+}
+
+.indicator-code-cell {
+  font-weight: 700;
+  color: #FF6B9D;
+  font-size: 1rem;
+  margin-bottom: 0.2rem;
+}
+
+.indicator-name-cell {
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
+.indicator-value-cell {
+  text-align: right;
+  font-weight: 700;
+  color: #333;
+  font-size: 1rem;
+  font-family: 'Courier New', monospace;
+}
+
+/* ====================================
+   SURVIVAL CHART LEGEND STYLES
+   ==================================== */
+.survival-chart-legend {
+  background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #9C27B0;
+  box-shadow: 0 4px 12px rgba(156, 39, 176, 0.2);
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.legend-title {
+  color: #7B1FA2;
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: block !important;
+}
+
+.legend-content {
+  color: #666;
+  line-height: 1.8;
+  display: block !important;
+}
+
+.legend-item {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+  display: block !important;
+}
+
+.legend-item strong {
+  color: #333;
+  font-weight: 700;
+}
+
+.legend-example {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  border-left: 3px solid #7B1FA2;
+  display: block !important;
+}
+
+.legend-example p {
+  margin: 0;
+  color: #7B1FA2;
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: block !important;
+}
+
+.legend-example strong {
+  font-weight: 700;
 }
 
 /* ====================================
